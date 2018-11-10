@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name          Text contrast corrections
-// @namespace     http://userstyles.org
+// @namespace     https://github.com/JakubFojtik/text-contrast-corrections
 // @description	  Sets minimum font width to normal and increases contrast between text and background if necessary.
 // @author        Jakub Fojtík
 // @include       *
