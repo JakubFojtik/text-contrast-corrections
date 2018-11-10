@@ -6,10 +6,10 @@ necessary.
 # Installation
 
  - Install Greasemonkey or equivalent
- - open the text-contrast-corrections.user.js in browser and accept install prompt from 
+ - open the [text-contrast-corrections.user.js](https://github.com/JakubFojtik/text-contrast-corrections/raw/master/text-contrast-corrections.user.js) in browser and accept install prompt from 
 Greasemonkey
  - if no install prompt appears, click GM logo, Add new script, then Edit the new script and copy 
-the contents of text-contrast-corrections.user.js there
+the contents of [text-contrast-corrections.user.js](https://github.com/JakubFojtik/text-contrast-corrections/raw/master/text-contrast-corrections.user.js) there
 
 # Todos
 
