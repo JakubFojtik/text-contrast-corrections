@@ -10,3 +10,8 @@ necessary.
 Greasemonkey
  - if no install prompt appears, click GM logo, Add new script, then Edit the new script and copy 
 the contents of text-contrast-corrections.user.js there
+
+# Todos
+
+ - does not yet run on lazy-loaded content
+ 
