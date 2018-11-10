@@ -6,7 +6,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.2
+// @version       1.3
 // ==/UserScript==
 
 //Todo:
@@ -32,34 +32,22 @@
         console.log('bad colorspec ' + colorSpec);
       }
     }
-    isTransparent() {
-      return this.parts[3] == 0;
-    }
-    isOpaque() {
-      return this.parts[3] == 255;
-    }
     alpha() {
       return this.parts[3];
+    }
+    isTransparent() {
+      return this.alpha() == 0;
+    }
+    isOpaque() {
+      return this.alpha() == 255;
     }
     toString() {
       return 'rgba(' + this.parts.join(', ') + ')';
     }
     brightness() {
-      if (!this.isOpaque()) return 128; //return 255/2, so that contrast correction still works. Todo compute alpha brightness properly
+      if (!this.isOpaque()) return 128; //return 255/2, so that lighter/darker color detection still works somewhat. Should not be called on non-opaque colors anyway.
       return this.parts.slice(0, 4).reduce((a, b) => a + b, 0) / 3;
     }
-    /*
-    asOpaque(brighten) {
-      if(this.isOpaque()) return this.parts;
-      
-      let opParts = [];
-      this.parts.slice(0,4).forEach(function (part, idx) {
-        let finalCol = brighten ? 255-this.parts[3] : this.parts[3];
-        opParts[idx] = part*finalCol/255;
-      });
-      opParts[3] = 255;
-    }
-    */
     changeLum(brighten) {
       let fun = brighten ? Math.min : Math.max;
       let limit = brighten ? 255 : 0;
@@ -81,19 +69,18 @@
       this.changeLum(brighten);
       return false;
     }
-
   }
 
 
   function elementsUnder(el) {
-    var n, a = [],
+    let n, a = [],
       walk = document.createTreeWalker(el, NodeFilter.SHOW_ELEMENT, null, false);
     while (n = walk.nextNode()) a.push(n);
     return a;
   }
 
   function computeColor(element, prop) {
-    var col = new Color(window.getComputedStyle(element).getPropertyValue(prop));
+    let col = new Color(window.getComputedStyle(element).getPropertyValue(prop));
 
     if (!col.isOpaque()) { //Background color can not be computed, if not directly set returns rgba(0,0,0,0)
       let colors = [col];
@@ -102,20 +89,18 @@
       while (el.parentNode != null) {
         el = el.parentNode;
         col = new Color(window.getComputedStyle(el).getPropertyValue(prop)); //Is getComputedStyle inspecting also parent elements for non-computable bgcolor? If yes, optimize?
-        if (!col.isTransparent()) colors.push(col);
-        if (col.isOpaque()) { //Only accepts fully opaque color, partialy transparent colors are ignored. Todo compute them into the resulting color.
+        if (!col.isTransparent()) colors.push(col); //save transparent colors for later blending
+        if (col.isOpaque()) { //need to reach an opaque color to blend the transparents into
           bgcolor = col;
           break;
         }
       }
-      if (element.parentNode == null) colors.push(bgcolor);
+      if (element.parentNode == null) colors.push(bgcolor); //ensure final color is in the array
       col = bgcolor;
-
-      //if(element.tagName.localeCompare('code', 'en', {sensitivity: 'accent'}) == 0) alert(colors.reverse().slice(1));
 
       //Compute all alpha colors with the final opaque color
       //So Blue->10%Red->15%Green should be 85%(90%Blue+10%Red)+15%Green
-      //Todo proper alpha blending, this does not seem to give correct results with e.g (1,1,1,0.05)
+      //Todo proper alpha blending, this does not seem to give correct results with e.g white and (30,30,30,0.05)
       colors.reverse().slice(1).forEach(function (color, idx, arr) {
         let newColPerc = color.alpha() / 255;
         color.parts.slice(0, 4).forEach(function (part, idx) {
@@ -129,19 +114,7 @@
       //Todo create global dictionary of elemt->bgcolor for later lookup. Also assign computed bgcolor to elements between the current and the colored.
       //So that  Blue->transp->transp->transp becomes not only Blue->transp->transp->Blue,
       //but also Blue->Blue->  Blue->  Blue
-
-      /*
-      //Stub for applying partial transparency to the color parts.
-      //To make background "more transparent" means making it more of the opaque color it has - if it is bright then brighten, else darken.
-      if(!isColOpaque(parts)) {
-        parts.forEach(function(part, idx, arr) {
-          arr[idx] = Math.round(Math.max(0,part*(255-arr[3])/255));	//todo alter for darkening, maybe compute intermediate colors
-        });
-      }
-      */
     }
-
-    //if(element.tagName.localeCompare('code', 'en', {sensitivity: 'accent'}) == 0) alert(prop + col + col.isOpaque());
 
     return col;
   }
@@ -151,13 +124,9 @@
     let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
     if (fw < 400) element.style.setProperty("font-weight", 400, "important");
 
-    var col = computeColor(element, 'color');
-    var bgcol = computeColor(element, 'background-color');
-    //alert(col + ', ' + bgcol);
+    let col = computeColor(element, 'color');
+    let bgcol = computeColor(element, 'background-color');
     let isColBrighter = col.brightness() > bgcol.brightness();
-    //if(isColBrighter) alert('pre'+colParts + ', ' + bgcParts);
-    //if(element.tagName.localeCompare('code', 'en', {sensitivity: 'accent'}) == 0)
-    //  alert(col+bgcol);
     if (!col.correct(isColBrighter)) {
       element.style.setProperty("color", col.toString(), "important");
     }
@@ -166,8 +135,6 @@
     }
     //if(element.tagName.localeCompare('code', 'en', {sensitivity: 'accent'}) == 0)
     //  alert(col+bgcol);
-    //alert(colParts + ', ' + bgcParts);
-
 
   });
 })();
