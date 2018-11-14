@@ -6,7 +6,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.3
+// @version       1.4
 // ==/UserScript==
 
 //Todo:
@@ -86,7 +86,7 @@
       let colors = [col];
       let bgcolor = new Color('rgb(255, 255, 255)'); //default bg color if all elements report transparent
       let el = element;
-      while (el.parentNode != null) {
+      while (el.parentNode instanceof Element) {
         el = el.parentNode;
         col = new Color(window.getComputedStyle(el).getPropertyValue(prop)); //Is getComputedStyle inspecting also parent elements for non-computable bgcolor? If yes, optimize?
         if (!col.isTransparent()) colors.push(col); //save transparent colors for later blending
@@ -95,7 +95,7 @@
           break;
         }
       }
-      if (element.parentNode == null) colors.push(bgcolor); //ensure final color is in the array
+      if (el.parentNode == null) colors.push(bgcolor); //ensure final color is in the array
       col = bgcolor;
 
       //Compute all alpha colors with the final opaque color
@@ -119,6 +119,9 @@
     return col;
   }
 
+  //console.log(elementsUnder(document.body).filter(x=>!(x instanceof Element)).join(', '));
+  //console.log(elementsUnder(document.body).map(x=>x.parentNode).filter(x=>!(x instanceof Element)).join(', '));
+  
   elementsUnder(document.body).forEach(function (element) {
     //if(element.className!='curated-tile__title-wrapper') return;
     let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
@@ -126,7 +129,9 @@
 
     let col = computeColor(element, 'color');
     let bgcol = computeColor(element, 'background-color');
+    
     let isColBrighter = col.brightness() > bgcol.brightness();
+    
     if (!col.correct(isColBrighter)) {
       element.style.setProperty("color", col.toString(), "important");
     }
