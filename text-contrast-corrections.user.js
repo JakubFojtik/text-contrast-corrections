@@ -6,12 +6,11 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.4
+// @version       1.5
 // ==/UserScript==
 
 //Todo:
 //Rerun for lazy-loaded content e.g. comments on gog.com
-//Save intermediate results for speed
 //Detect background-image or skip color changes if detected. Same for background gradients.
 
 (function () {
@@ -39,13 +38,19 @@
       return this.alpha() == 0;
     }
     isOpaque() {
-      return this.alpha() == 255;
+      //margin of error for float operations
+      let e = 1;
+      let diff = Math.abs(this.alpha() - 255);
+      return diff < e;
     }
     toString() {
       return 'rgba(' + this.parts.join(', ') + ')';
     }
     brightness() {
-      if (!this.isOpaque()) return 128; //return 255/2, so that lighter/darker color detection still works somewhat. Should not be called on non-opaque colors anyway.
+      if (!this.isOpaque()) {
+        console.log('error getting brightness of alpha color');
+        return 128; //return 255/2, so that lighter/darker color detection still works somewhat. Should not be called on non-opaque colors anyway.
+      }
       return this.parts.slice(0, 4).reduce((a, b) => a + b, 0) / 3;
     }
     changeLum(brighten) {
@@ -71,19 +76,19 @@
     }
     //Computes final color of alpha color on solid background
     asOpaque(bgColor) {
-      if(this.isOpaque()) return this;
-      if(!bgColor.isOpaque()) console.log('error bgcolor is not opaque: '+bgColor.toString());
-      
+      if (this.isOpaque()) return this;
+      if (!bgColor.isOpaque()) console.log('error bgcolor is not opaque: ' + bgColor.toString());
+
       let color = new Color(this.toString());
-      color.parts[3]=255;
-      
+      color.parts[3] = 255;
+
       let alpha = this.alpha();
       color.parts.slice(0, 4).forEach(function (part, idx) {
         let col = part * alpha;
         let bgCol = bgColor.parts[idx] * (1 - alpha);
         color.parts[idx] = col + bgCol;
       });
-      
+
       return color;
     }
   }
@@ -97,64 +102,68 @@
   }
 
   function findAndMergeBgCol(element, bgProp) {
-    let prop=bgProp;
+    let prop = bgProp;
     let col = new Color(window.getComputedStyle(element).getPropertyValue(prop));
 
     if (!col.isOpaque()) { //Background color can not be computed, if not directly set, it returns rgba(0,0,0,0)
-      let colors = [col];
+      let colors = [{
+        col: col,
+        el: element
+      }]; //tuple of element aand its bgcolor, so computed color can later be assigned back
       let bgcolor = new Color('rgb(255, 255, 255)'); //default bg color if all elements report transparent
       let el = element;
       while (el.parentNode instanceof Element) {
         el = el.parentNode;
         col = new Color(window.getComputedStyle(el).getPropertyValue(prop)); //Is getComputedStyle inspecting also parent elements for non-computable bgcolor? If yes, optimize?
-        if (!col.isTransparent()) colors.push(col); //save transparent colors for later blending
+        if (!col.isTransparent()) colors.push({
+          col: col,
+          el: el
+        }); //save transparent colors for later blending
         if (col.isOpaque()) { //need to reach an opaque color to blend the transparents into
           bgcolor = col;
           break;
         }
       }
-      if (el.parentNode == null) colors.push(bgcolor); //ensure final color is in the array
+      if (el.parentNode == null) colors.push({
+        col: bgcolor,
+        el: el
+      }); //ensure final color is in the array
       col = bgcolor;
 
       //Compute all alpha colors with the final opaque color
       //So Blue->10%Red->15%Green should be 85%(90%Blue+10%Red)+15%Green
-      //Todo proper alpha blending, this does not seem to give correct results with e.g white and (30,30,30,0.05)
-      //but should be good on its own.
       //Todo gradients and bgimages
-      colors.reverse().slice(1).forEach(function (color) {
-        col = color.asOpaque(col);
+      colors.reverse().slice(1).forEach(function (colEl) {
+        col = colEl.col.asOpaque(col);
+        colEl.el.style.backgroundColor = col.toString();
       });
-
-      //Todo create global dictionary of elemt->bgcolor for later lookup. Also assign computed bgcolor to elements between the current and the colored.
-      //So that  Blue->transp->transp->transp becomes not only Blue->transp->transp->Blue,
-      //but also Blue->Blue->  Blue->  Blue
     }
-    
+
     return col;
   }
-  
+
   function computeColors(element, fgProp, bgProp) {
     let bgColor = findAndMergeBgCol(element, bgProp);
-    
+
     //Now we can compute fg color even if it has alpha
     let col = new Color(window.getComputedStyle(element).getPropertyValue(fgProp));
     let fgColor = col.asOpaque(bgColor);
-    
-    return {fgCol: fgColor, bgCol: bgColor};
+
+    return {
+      fgCol: fgColor,
+      bgCol: bgColor
+    };
   }
 
-  //console.log(elementsUnder(document.body).filter(x=>!(x instanceof Element)).join(', '));
-  //console.log(elementsUnder(document.body).map(x=>x.parentNode).filter(x=>!(x instanceof Element)).join(', '));
-  
   elementsUnder(document.body).forEach(function (element) {
-    //if(element.className!='curated-tile__title-wrapper') return;
+    //if(element.className!='Counter') return;
     let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
     if (fw < 400) element.style.setProperty("font-weight", 400, "important");
 
     let cols = computeColors(element, 'color', 'background-color');
     let col = cols.fgCol;
     let bgcol = cols.bgCol;
-    
+
     let isColBrighter = col.brightness() > bgcol.brightness();
     if (!col.correct(isColBrighter)) {
       element.style.setProperty("color", col.toString(), "important");
@@ -163,7 +172,6 @@
       element.style.setProperty("background-color", bgcol.toString(), "important");
     }
     //if(element.tagName.localeCompare('code', 'en', {sensitivity: 'accent'}) == 0)
-    //  alert(col+bgcol);
 
   });
 })();
