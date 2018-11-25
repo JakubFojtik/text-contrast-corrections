@@ -19,5 +19,4 @@ the contents of [text-contrast-corrections.user.js](https://github.com/JakubFojt
 
  - does not yet run on lazy-loaded content, e.g. here on GitHub the file view has to be reloaded for the script to work
  - does not notice partialy-transparent backgrounds, e.g. here on GitHub the number of Issues in the repository menu becomes white
- - does not save intermediate results
  
