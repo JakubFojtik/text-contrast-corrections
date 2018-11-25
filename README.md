@@ -3,6 +3,10 @@
 Sets minimum font width to normal and increases contrast between text and background if 
 necessary.
 
+# Example
+Not very visible, but the Issues, Pull requests etc. have more contrast, as do the comments:
+![](githubdiff.png)
+
 # Installation
 
  - Install Greasemonkey or equivalent
