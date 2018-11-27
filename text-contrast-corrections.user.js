@@ -6,7 +6,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.5
+// @version       1.6
 // ==/UserScript==
 
 //Todo:
