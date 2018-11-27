@@ -15,6 +15,8 @@
 
 (function () {
 
+  let elemBgcol = new Map();
+  
   class Color {
     constructor(colorSpec) {
       let regex = /[0-9.]+/g; //allow for missing leading zero, at least FF displays colors like that
@@ -100,10 +102,13 @@
     while (n = walk.nextNode()) a.push(n);
     return a;
   }
+  
+  function getBgColor(el, bgProp) {
+    return elemBgcol.has(el) ? elemBgcol.get(el) : new Color(window.getComputedStyle(el).getPropertyValue(bgProp));
+  }
 
   function findAndMergeBgCol(element, bgProp) {
-    let prop = bgProp;
-    let col = new Color(window.getComputedStyle(element).getPropertyValue(prop));
+    let col = getBgColor(element, bgProp);
 
     if (!col.isOpaque()) { //Background color can not be computed, if not directly set, it returns rgba(0,0,0,0)
       let colors = [{
@@ -114,7 +119,7 @@
       let el = element;
       while (el.parentNode instanceof Element) {
         el = el.parentNode;
-        col = new Color(window.getComputedStyle(el).getPropertyValue(prop)); //Is getComputedStyle inspecting also parent elements for non-computable bgcolor? If yes, optimize?
+        col = getBgColor(el, bgProp); //Is getComputedStyle inspecting also parent elements for non-computable bgcolor? If yes, optimize?
         if (!col.isTransparent()) colors.push({
           col: col,
           el: el
@@ -135,7 +140,7 @@
       //Todo gradients and bgimages
       colors.reverse().slice(1).forEach(function (colEl) {
         col = colEl.col.asOpaque(col);
-        colEl.el.style.backgroundColor = col.toString();
+        elemBgcol.set(colEl.el, col);
       });
     }
 
