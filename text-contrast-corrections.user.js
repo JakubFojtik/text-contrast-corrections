@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.6
+// @version       1.7
 // @run-at        document-idle
 // @require       https://raw.githubusercontent.com/lokesh/color-thief/master/src/color-thief.js
 // ==/UserScript==
