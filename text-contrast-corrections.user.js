@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.7
+// @version       1.8
 // @run-at        document-idle
 // @require       https://raw.githubusercontent.com/lokesh/color-thief/master/src/color-thief.js
 // ==/UserScript==
@@ -19,9 +19,11 @@ try
 
     let elemBgcol = new Map();
     let colorThief = new ColorThief();
+    let imgCounter=0;
 
-    function cleanBgImageUrl(url) {
-      return url.split('"')[1];
+    function getBgImageUrl(element) {
+      let url = window.getComputedStyle(element).getPropertyValue('background-image');
+      return url && url != 'none' ? url.split('"')[1] : null;
     }
 
     class Color {
@@ -91,7 +93,7 @@ try
         let color = new Color(this.toString());
         color.parts[3] = 255;
 
-        let alpha = this.alpha();
+        let alpha = this.alpha() / 255;
         color.parts.slice(0, 4).forEach((part, idx) => {
           let col = part * alpha;
           let bgCol = bgColor.parts[idx] * (1 - alpha);
@@ -112,7 +114,6 @@ try
 
     function getBgColor(el, bgProp) {
       return elemBgcol.has(el) ? elemBgcol.get(el) : new Color(window.getComputedStyle(el).getPropertyValue(bgProp));
-      //col = new Color(getImageColor(cleanBgImageUrl(imgUrl)));
     }
 
     function findAndMergeBgCol(element, bgProp) {
@@ -168,25 +169,63 @@ try
       };
     }
 
-    elementsUnder(document.body).forEach((element) => {
-      //if(element.id!='ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_rulingsRepeater_ctl01_rulingText') return;
-      let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
-      if (fw < 400) element.style.setProperty("font-weight", 400, "important");
-
-      let cols = computeColors(element, 'color', 'background-color');
-      let col = cols.fgCol;
-      let bgcol = cols.bgCol;
-
-      let isColBrighter = col.brightness() > bgcol.brightness();
-      if (!col.correct(isColBrighter)) {
-        element.style.setProperty("color", col.toString(), "important");
+    //First pass - convert bg images to colors
+    imgCounter = 0;
+    elementsUnder(document).forEach((element) => {
+      let url = getBgImageUrl(element);
+      if(url) {
+        imgCounter++;
+        
+        //copypaste of ColorThief.prototype.getColorFromUrl. Load events are sometimes not fired for image that already loaded e.g. <body> background image.
+        let sourceImage = document.createElement("img");
+        var thief = colorThief;
+        sourceImage.addEventListener('load' , function(){
+          var palette = thief.getPalette(sourceImage, 5);
+          var dominantColor = palette[0];
+          element.style.setProperty("background-color", new Color(dominantColor.join(',')).toString(), "important");
+          imgCounter--;
+          //console.log('done'+url);
+        });
+        sourceImage.src = url
+        //console.log(sourceImage.complete+url);
       }
-      if (!bgcol.correct(!isColBrighter)) {
-        element.style.setProperty("background-color", bgcol.toString(), "important");
-      }
-      //if(element.tagName.localeCompare('code', 'en', {sensitivity: 'accent'}) == 0)
-
     });
+
+    let int = window.setInterval(() => {
+      //console.log(imgCounter);
+      if(imgCounter != 0) return;
+      else window.clearInterval(int);
+      correctThemAll();
+    }, 100);
+
+    let int2 = window.setTimeout(() => {
+      if(imgCounter != 0) {
+        window.clearInterval(int);
+        correctThemAll();
+      }
+    }, 5000);
+
+    //Second pass - compare and correct colors
+    function correctThemAll() {
+      elementsUnder(document.body).forEach((element) => {
+        //if(element.className!='post oddItem') return;
+        let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
+        if (fw < 400) element.style.setProperty("font-weight", 400, "important");
+
+        let cols = computeColors(element, 'color', 'background-color');
+        let col = cols.fgCol;
+        let bgcol = cols.bgCol;
+
+        let isColBrighter = col.brightness() > bgcol.brightness();
+        if (!col.correct(isColBrighter)) {
+          element.style.setProperty("color", col.toString(), "important");
+        }
+        if (!bgcol.correct(!isColBrighter)) {
+          element.style.setProperty("background-color", bgcol.toString(), "important");
+        }
+        //if(element.tagName.localeCompare('code', 'en', {sensitivity: 'accent'}) == 0)
+      });
+    }
   })();
 }
 catch(e)
