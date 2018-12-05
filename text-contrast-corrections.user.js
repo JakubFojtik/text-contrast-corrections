@@ -1,5 +1,3 @@
-
-
 // ==UserScript==
 // @name          Text contrast corrections
 // @namespace     https://github.com/JakubFojtik/text-contrast-corrections
@@ -7,16 +5,25 @@
 // @author        Jakub Fojtík
 // @include       *
 // @version       1.6
+// @run-at        document-idle
+// @require       https://raw.githubusercontent.com/lokesh/color-thief/master/src/color-thief.js
 // ==/UserScript==
 
 //Todo:
 //Rerun for lazy-loaded content e.g. comments on gog.com
 //Detect background-image or skip color changes if detected. Same for background gradients.
 
+try
+{
 (function () {
 
   let elemBgcol = new Map();
+  let colorThief = new ColorThief();
   
+  function cleanBgImageUrl(url) {
+  	return url.split('"')[1];
+  }
+    
   class Color {
     constructor(colorSpec) {
       let regex = /[0-9.]+/g; //allow for missing leading zero, at least FF displays colors like that
@@ -24,7 +31,7 @@
 
       if (parts.length >= 3) {
         let parsedParts = [];
-        parts.forEach(function (part, idx) {
+        parts.forEach((part, idx) => {
           parsedParts[idx] = parseFloat(part);
         });
         if (parsedParts.length < 4) parsedParts[3] = 255;
@@ -85,7 +92,7 @@
       color.parts[3] = 255;
 
       let alpha = this.alpha();
-      color.parts.slice(0, 4).forEach(function (part, idx) {
+      color.parts.slice(0, 4).forEach((part, idx) => {
         let col = part * alpha;
         let bgCol = bgColor.parts[idx] * (1 - alpha);
         color.parts[idx] = col + bgCol;
@@ -105,45 +112,46 @@
   
   function getBgColor(el, bgProp) {
     return elemBgcol.has(el) ? elemBgcol.get(el) : new Color(window.getComputedStyle(el).getPropertyValue(bgProp));
+    //col = new Color(getImageColor(cleanBgImageUrl(imgUrl)));
   }
 
   function findAndMergeBgCol(element, bgProp) {
-    let col = getBgColor(element, bgProp);
-
-    if (!col.isOpaque()) { //Background color can not be computed, if not directly set, it returns rgba(0,0,0,0)
-      let colors = [{
-        col: col,
-        el: element
-      }]; //tuple of element aand its bgcolor, so computed color can later be assigned back
+      let colors = []; //tuples of element and its bgcolor, so computed bgcolor can later be remembered
+    
       let bgcolor = new Color('rgb(255, 255, 255)'); //default bg color if all elements report transparent
       let el = element;
-      while (el.parentNode instanceof Element) {
-        el = el.parentNode;
+    	let col;
+
+      while (el instanceof Element) {
         col = getBgColor(el, bgProp); //Is getComputedStyle inspecting also parent elements for non-computable bgcolor? If yes, optimize?
-        if (!col.isTransparent()) colors.push({
-          col: col,
-          el: el
-        }); //save transparent colors for later blending
+        if(!(col instanceof Color )) alert(el.tagName + col);
+        if (!col.isTransparent()) {
+          colors.push({
+            col: col,
+            el: el
+          }); //save transparent colors for later blending
+        }
         if (col.isOpaque()) { //need to reach an opaque color to blend the transparents into
           bgcolor = col;
           break;
         }
+        el = el.parentNode;
       }
-      if (el.parentNode == null) colors.push({
+      if (el == null) colors.push({
         col: bgcolor,
         el: el
       }); //ensure final color is in the array
       col = bgcolor;
-
+    
       //Compute all alpha colors with the final opaque color
       //So Blue->10%Red->15%Green should be 85%(90%Blue+10%Red)+15%Green
       //Todo gradients and bgimages
-      colors.reverse().slice(1).forEach(function (colEl) {
+      colors.reverse().slice(1).forEach((colEl) => {
         col = colEl.col.asOpaque(col);
         elemBgcol.set(colEl.el, col);
+        colEl.el.style.backgroundColor=col.toString();
       });
-    }
-
+    
     return col;
   }
 
@@ -159,9 +167,9 @@
       bgCol: bgColor
     };
   }
-
-  elementsUnder(document.body).forEach(function (element) {
-    //if(element.className!='Counter') return;
+  
+  elementsUnder(document.body).forEach((element) => {
+    //if(element.id!='ctl00_ctl00_ctl00_MainContent_SubContent_SubContent_rulingsRepeater_ctl01_rulingText') return;
     let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
     if (fw < 400) element.style.setProperty("font-weight", 400, "important");
 
@@ -180,4 +188,8 @@
 
   });
 })();
-
+}
+catch(e)
+{
+    console.log(e);
+}
