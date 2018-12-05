@@ -11,7 +11,8 @@
 
 //Todo:
 //Rerun for lazy-loaded content e.g. comments on gog.com
-//Detect background-image or skip color changes if detected. Same for background gradients.
+//Detect background gradients.
+//Ask for bg image only if nested element needs it. load it async, in callback just rerun for child elements of the image
 
 try
 {
@@ -175,13 +176,26 @@ try
       let url = getBgImageUrl(element);
       if(url) {
         imgCounter++;
-        
+
         //copypaste of ColorThief.prototype.getColorFromUrl. Load events are sometimes not fired for image that already loaded e.g. <body> background image.
+        //ColorThief seemingly ignores transparent pixels.
         let sourceImage = document.createElement("img");
         var thief = colorThief;
         sourceImage.addEventListener('load' , function(){
           var palette = thief.getPalette(sourceImage, 5);
           var dominantColor = palette[0];
+          /*
+          var avgColor = palette.reduce((a,b) => {
+            return a.map((x, idx)=>{
+              return (x + b[idx]) / 2;
+            });
+          });
+          //Add some weight to the dominant color. Maybe pallete returns colors in descending dominance?
+          dominantColor = dominantColor.map((x, idx)=>{
+            return 0.8 * x + 0.2 * avgColor[idx];
+          });
+          */
+
           element.style.setProperty("background-color", new Color(dominantColor.join(',')).toString(), "important");
           imgCounter--;
           //console.log('done'+url);
@@ -191,14 +205,16 @@ try
       }
     });
 
+    //Wait for images to load
     let int = window.setInterval(() => {
       //console.log(imgCounter);
       if(imgCounter != 0) return;
       else window.clearInterval(int);
       correctThemAll();
-    }, 100);
+    }, 200);
 
-    let int2 = window.setTimeout(() => {
+    //Stop witing after fixed time
+    window.setTimeout(() => {
       if(imgCounter != 0) {
         window.clearInterval(int);
         correctThemAll();
