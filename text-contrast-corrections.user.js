@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.8
+// @version       1.9
 // @run-at        document-idle
 // @require       https://raw.githubusercontent.com/lokesh/color-thief/master/src/color-thief.js
 // ==/UserScript==
@@ -24,7 +24,11 @@ try
 
     function getBgImageUrl(element) {
       let url = window.getComputedStyle(element).getPropertyValue('background-image');
-      return url && url != 'none' ? url.split('"')[1] : null;
+      if(url && url != 'none') {
+        //skip nonrepeated bg in case of e.g. list item bullet images
+        let repeat = window.getComputedStyle(element).getPropertyValue('background-repeat');
+	      return repeat != 'no-repeat' ? url.split('"')[1] : null;
+      }
     }
 
     class Color {
@@ -147,11 +151,12 @@ try
 
       //Compute all alpha colors with the final opaque color
       //So Blue->10%Red->15%Green should be 85%(90%Blue+10%Red)+15%Green
-      //Todo gradients and bgimages
+      //Todo gradients
       colors.reverse().slice(1).forEach((colEl) => {
         col = colEl.col.asOpaque(col);
         elemBgcol.set(colEl.el, col);
-        colEl.el.style.backgroundColor=col.toString();
+        
+        //colEl.el.style.backgroundColor=col.toString();
       });
 
       return col;
@@ -219,19 +224,20 @@ try
         window.clearInterval(int);
         correctThemAll();
       }
-    }, 5000);
+    }, 3000);
 
     //Second pass - compare and correct colors
     function correctThemAll() {
       elementsUnder(document.body).forEach((element) => {
-        //if(element.className!='post oddItem') return;
+        //if(element.getAttribute("name")!='q') return;
         let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
         if (fw < 400) element.style.setProperty("font-weight", 400, "important");
 
         let cols = computeColors(element, 'color', 'background-color');
         let col = cols.fgCol;
         let bgcol = cols.bgCol;
-
+//console.log(element.tagName+element.className+element.name+col+bgcol);
+        
         let isColBrighter = col.brightness() > bgcol.brightness();
         if (!col.correct(isColBrighter)) {
           element.style.setProperty("color", col.toString(), "important");
