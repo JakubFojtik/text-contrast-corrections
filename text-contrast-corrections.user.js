@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.9
+// @version       1.10
 // @run-at        document-idle
 // @require       https://raw.githubusercontent.com/lokesh/color-thief/master/src/color-thief.js
 // ==/UserScript==
@@ -48,15 +48,18 @@ try
         }
       }
       alpha() {
-        return this.parts[3];
+        return Math.min(this.parts[3], 1);
       }
       isTransparent() {
-        return this.alpha() == 0;
+        return this.isAlphaNear(0);
       }
       isOpaque() {
+        return this.isAlphaNear(1);
+      }
+      isAlphaNear(num) {
         //margin of error for float operations
-        let e = 1;
-        let diff = Math.abs(this.alpha() - 255);
+        let e = 0.01;
+        let diff = Math.abs(num - this.alpha());
         return diff < e;
       }
       toString() {
@@ -67,13 +70,14 @@ try
           console.log('error getting brightness of alpha color');
           return 128; //return 255/2, so that lighter/darker color detection still works somewhat. Should not be called on non-opaque colors anyway.
         }
-        return this.parts.slice(0, 4).reduce((a, b) => a + b, 0) / 3;
+        return this.getRGBParts().reduce((a, b) => a + b, 0) / 3;
       }
       changeLum(brighten) {
         let fun = brighten ? Math.min : Math.max;
         let limit = brighten ? 255 : 0;
         let op = brighten ? (a, b) => a + b : (a, b) => a - b;
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < this.getRGBParts().length; i++) {
+//console.log(this.parts[i] + ' to ' + fun(limit, op(this.parts[i], 80)));
           this.parts[i] = fun(limit, op(this.parts[i], 80));
         }
       }
@@ -84,7 +88,7 @@ try
         let saturationLimit = brighten ? 192 : 64;
         //If at least one color part is dark then the color is dark - #f0f is purple.
         //But #ff0 is yellow, todo improve algorithm
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < this.getRGBParts().length; i++) {
           if (isSaturatedEnough(this.parts[i], saturationLimit)) return true;
         }
         this.changeLum(brighten);
@@ -98,14 +102,17 @@ try
         let color = new Color(this.toString());
         color.parts[3] = 255;
 
-        let alpha = this.alpha() / 255;
-        color.parts.slice(0, 4).forEach((part, idx) => {
+        let alpha = this.alpha();
+        color.getRGBParts().forEach((part, idx) => {
           let col = part * alpha;
           let bgCol = bgColor.parts[idx] * (1 - alpha);
           color.parts[idx] = col + bgCol;
         });
 
         return color;
+      }
+      getRGBParts() {
+        return this.parts.slice(0, 3);
       }
     }
 
@@ -148,6 +155,8 @@ try
         el: el
       }); //ensure final color is in the array
       col = bgcolor;
+      
+      //console.log(col + ' pak ' + colors.map(x=>x.col).join(', '));
 
       //Compute all alpha colors with the final opaque color
       //So Blue->10%Red->15%Green should be 85%(90%Blue+10%Red)+15%Green
@@ -167,7 +176,10 @@ try
 
       //Now we can compute fg color even if it has alpha
       let col = new Color(window.getComputedStyle(element).getPropertyValue(fgProp));
+//console.log(element.tagName+element.className+element.name+col+bgColor);
+      
       let fgColor = col.asOpaque(bgColor);
+//console.log(element.tagName+element.className+element.name+fgColor+bgColor);
 
       return {
         fgCol: fgColor,
@@ -229,7 +241,7 @@ try
     //Second pass - compare and correct colors
     function correctThemAll() {
       elementsUnder(document.body).forEach((element) => {
-        //if(element.getAttribute("name")!='q') return;
+        //if(element.tagName!='I') return;
         let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
         if (fw < 400) element.style.setProperty("font-weight", 400, "important");
 
@@ -237,6 +249,7 @@ try
         let col = cols.fgCol;
         let bgcol = cols.bgCol;
 //console.log(element.tagName+element.className+element.name+col+bgcol);
+//console.log(col.brightness() + ' ' + bgcol.brightness());
         
         let isColBrighter = col.brightness() > bgcol.brightness();
         if (!col.correct(isColBrighter)) {
@@ -245,6 +258,7 @@ try
         if (!bgcol.correct(!isColBrighter)) {
           element.style.setProperty("background-color", bgcol.toString(), "important");
         }
+//console.log(col.brightness() + ' ' + bgcol.brightness());
         //if(element.tagName.localeCompare('code', 'en', {sensitivity: 'accent'}) == 0)
       });
     }
