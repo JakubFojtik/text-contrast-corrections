@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.10
+// @version       1.11
 // @run-at        document-idle
 // @require       https://raw.githubusercontent.com/lokesh/color-thief/master/src/color-thief.js
 // ==/UserScript==
@@ -41,7 +41,7 @@ try
           parts.forEach((part, idx) => {
             parsedParts[idx] = parseFloat(part);
           });
-          if (parsedParts.length < 4) parsedParts[3] = 255;
+          if (parsedParts.length < 4) parsedParts[3] = 1;
           this.parts = parsedParts;
         } else {
           console.log('bad colorspec ' + colorSpec);
@@ -100,7 +100,7 @@ try
         if (!bgColor.isOpaque()) console.log('error bgcolor is not opaque: ' + bgColor.toString());
 
         let color = new Color(this.toString());
-        color.parts[3] = 255;
+        color.parts[3] = 1;
 
         let alpha = this.alpha();
         color.getRGBParts().forEach((part, idx) => {
