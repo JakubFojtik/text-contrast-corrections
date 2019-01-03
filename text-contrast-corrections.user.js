@@ -4,9 +4,9 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.12
+// @version       1.13
 // @run-at        document-idle
-// @require       https://raw.githubusercontent.com/lokesh/color-thief/master/src/color-thief.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
 // ==/UserScript==
 
 //Todo:
@@ -158,7 +158,7 @@ try
         col = colEl.col.asOpaque(col);
         elemBgcol.set(colEl.el, col);
         
-        //colEl.el.style.backgroundColor=col.toString();
+        colEl.el.style.backgroundColor=col.toString();
       });
 
       return col;
@@ -194,7 +194,8 @@ try
         sourceImage.addEventListener('load' , function(){
           var palette = thief.getPalette(sourceImage, 5);
           var dominantColor = palette[0];
-          /*
+          //console.log(palette);
+          
           var avgColor = palette.reduce((a,b) => {
             return a.map((x, idx)=>{
               return (x + b[idx]) / 2;
@@ -204,7 +205,7 @@ try
           dominantColor = dominantColor.map((x, idx)=>{
             return 0.8 * x + 0.2 * avgColor[idx];
           });
-          */
+          
 
           element.style.setProperty("background-color", new Color(dominantColor.join(',')).toString(), "important");
           imgCounter--;
@@ -243,9 +244,12 @@ try
 
     //Second pass - compare and correct colors
     function correctThemAll() {
+    	let elemCorrections = [];
+      
       elementsUnder(document.body).forEach((element) => {
         //console.log(element.tagName);
         //if(element.getAttribute("ng-controller") != 'gogConnectCtrl as reclaim') return;
+        //if(element.id != 'content') return;
         let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
         if (fw < 400) element.style.setProperty("font-weight", 400, "important");
 
@@ -257,14 +261,28 @@ try
         
         let isColBrighter = col.brightness() > bgcol.brightness();
         if (!col.correct(isColBrighter)) {
-          element.style.setProperty("color", col.toString(), "important");
+          elemCorrections.push({
+            el: element,
+            prop: "color",
+            col: col.toString()
+          });
         }
         if (!bgcol.correct(!isColBrighter)) {
-          element.style.setProperty("background-color", bgcol.toString(), "important");
+          elemCorrections.push({
+            el: element,
+            prop: "background-color",
+            col: bgcol.toString()
+          });
         }
 //console.log(col.brightness() + ' ' + bgcol.brightness());
         //if(element.tagName.localeCompare('code', 'en', {sensitivity: 'accent'}) == 0)
       });
+      
+      //Write the computed corrections last so they don't afect their computation
+      elemCorrections.forEach((corr) => {
+          corr.el.style.setProperty(corr.prop, corr.col, "important");
+      });
+      
     }
   })();
 }
