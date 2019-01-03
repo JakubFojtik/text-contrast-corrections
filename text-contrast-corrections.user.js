@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.11
+// @version       1.12
 // @run-at        document-idle
 // @require       https://raw.githubusercontent.com/lokesh/color-thief/master/src/color-thief.js
 // ==/UserScript==
@@ -116,13 +116,6 @@ try
       }
     }
 
-
-    function elementsUnder(el) {
-      let n, a = [],
-          walk = document.createTreeWalker(el, NodeFilter.SHOW_ELEMENT, null, false);
-      while (n = walk.nextNode()) a.push(n);
-      return a;
-    }
 
     function getBgColor(el, bgProp) {
       return elemBgcol.has(el) ? elemBgcol.get(el) : new Color(window.getComputedStyle(el).getPropertyValue(bgProp));
@@ -238,10 +231,21 @@ try
       }
     }, 3000);
 
+    function elementsUnder(el) {
+      let n, a = [],
+          walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+      while (n = walk.nextNode()) {
+        let parent = n.parentNode;
+        if(parent instanceof Element) a.push(parent);
+      }
+      return a;
+    }
+
     //Second pass - compare and correct colors
     function correctThemAll() {
       elementsUnder(document.body).forEach((element) => {
-        //if(element.tagName!='I') return;
+        //console.log(element.tagName);
+        //if(element.getAttribute("ng-controller") != 'gogConnectCtrl as reclaim') return;
         let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
         if (fw < 400) element.style.setProperty("font-weight", 400, "important");
 
