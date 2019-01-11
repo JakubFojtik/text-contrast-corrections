@@ -183,7 +183,7 @@ try
     
     //Set scrollbar color
     let part = 120;
-  	var parts = Array.apply(', ', Array(3)).map(x => part).join(',');
+    let parts = Array.apply(', ', Array(3)).map(x => part).join(',');
     let scrCol = new Color(parts);
     document.getElementsByTagName("HTML")[0].style.scrollbarColor=scrCol + ' rgba(0,0,0,0)';
 
