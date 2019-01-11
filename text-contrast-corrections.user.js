@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name          Text contrast corrections
 // @namespace     https://github.com/JakubFojtik/text-contrast-corrections
-// @description   Sets minimum font width to normal and increases contrast between text and background if necessary.
+// @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.13
+// @version       1.14
 // @run-at        document-idle
 // @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
 // ==/UserScript==
@@ -13,6 +13,7 @@
 //Rerun for lazy-loaded content e.g. comments on gog.com
 //Detect background gradients.
 //Ask for bg image only if nested element needs it. load it async, in callback just rerun for child elements of the image
+//Choose scrollbar foreground color to contrast page background.
 
 try
 {
@@ -116,7 +117,6 @@ try
       }
     }
 
-
     function getBgColor(el, bgProp) {
       return elemBgcol.has(el) ? elemBgcol.get(el) : new Color(window.getComputedStyle(el).getPropertyValue(bgProp));
     }
@@ -179,6 +179,13 @@ try
         bgCol: bgColor
       };
     }
+
+    
+    //Set scrollbar color
+    let part = 120;
+  	var parts = Array.apply(', ', Array(3)).map(x => part).join(',');
+    let scrCol = new Color(parts);
+    document.getElementsByTagName("HTML")[0].style.scrollbarColor=scrCol + ' rgba(0,0,0,0)';
 
     //First pass - convert bg images to colors
     imgCounter = 0;
