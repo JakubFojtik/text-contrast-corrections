@@ -2,6 +2,9 @@
 
 Sets minimum font width to normal and increases contrast between text and background if 
 necessary.
+Also changes scrollbar colors to dark on transparent.
+
+Only tested in Greaasemonkey in Firefox.
 
 # Example
 Not very visible, but the Issues, Pull requests etc. have more contrast, as do the comments:
