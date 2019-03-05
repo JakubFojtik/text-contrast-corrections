@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.15
+// @version       1.16
 // @run-at        document-idle
 // @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
 // ==/UserScript==
@@ -14,6 +14,17 @@
 //Detect background gradients.
 //Ask for bg image only if nested element needs it. load it async, in callback just rerun for child elements of the image
 //Choose scrollbar foreground color to contrast page background.
+
+
+//Assumptions / notes
+// - bgcolor is not computed, has to be guessed from parent elements
+// - bgcolor should not be adjusted, can be an average color of an image, so maybe by adjusting the image instead
+// - bg image can be just a tiny bit of the element, e.g. list item point. try to skip these somehow
+// - only run for text nodes to waste less time
+// - colorthief needs to load its copy of the image, which is usualy from cache, but can fail completely, do not expect all images to load. possibly local network error on my side only
+// - need to convert all bgimages to bgcolors, including textnode element parents, not just them
+// - first pass: convert all relevant bgimages to colors
+// - second pass: convert all alpha color to opaque and correct contrast
 
 try
 {
@@ -158,7 +169,7 @@ try
         col = colEl.col.asOpaque(col);
         elemBgcol.set(colEl.el, col);
         
-        colEl.el.style.backgroundColor=col.toString();
+        //colEl.el.style.backgroundColor=col.toString();
       });
 
       return col;
@@ -195,7 +206,7 @@ try
         imgCounter++;
 
         //copypaste of ColorThief.prototype.getColorFromUrl. Load events are sometimes not fired for image that already loaded e.g. <body> background image.
-        //ColorThief seemingly ignores transparent pixels.
+        //ColorThief seemingly ignores transparent pixels, but not white pixels anymore
         let sourceImage = document.createElement("img");
         var thief = colorThief;
         sourceImage.addEventListener('load' , function(){
