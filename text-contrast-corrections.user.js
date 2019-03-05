@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.16
+// @version       1.17
 // @run-at        document-idle
 // @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
 // ==/UserScript==
