@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.17
+// @version       1.18
 // @run-at        document-idle
 // @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
 // ==/UserScript==
@@ -14,7 +14,6 @@
 //Detect background gradients.
 //Ask for bg image only if nested element needs it. load it async, in callback just rerun for child elements of the image
 //Choose scrollbar foreground color to contrast page background.
-
 
 //Assumptions / notes
 // - bgcolor is not computed, has to be guessed from parent elements
@@ -132,6 +131,10 @@ try
       return elemBgcol.has(el) ? elemBgcol.get(el) : new Color(window.getComputedStyle(el).getPropertyValue(bgProp));
     }
 
+    function logElText(el) {
+      return el.tagName+' '+el.className+' '+el.parentNode.tagName;
+    }
+
     function findAndMergeBgCol(element, bgProp) {
       let colors = []; //tuples of element and its bgcolor, so computed bgcolor can later be remembered
 
@@ -141,6 +144,7 @@ try
 
       while (el instanceof Element) {
         col = getBgColor(el, bgProp); //Is getComputedStyle inspecting also parent elements for non-computable bgcolor? If yes, optimize?
+      //console.log(logElText(el)+col);
         if(!(col instanceof Color )) alert(el.tagName + col);
         if (!col.isTransparent()) {
           colors.push({
@@ -154,7 +158,7 @@ try
         }
         el = el.parentNode;
       }
-      if (el == null) colors.push({
+      if (!(el instanceof Element)) colors.push({
         col: bgcolor,
         el: el
       }); //ensure final color is in the array
@@ -165,6 +169,8 @@ try
       //Compute all alpha colors with the final opaque color
       //So Blue->10%Red->15%Green should be 85%(90%Blue+10%Red)+15%Green
       //Todo gradients
+        //element.style.backgroundColor=col.toString();
+        //elemBgcol.set(element, col);
       colors.reverse().slice(1).forEach((colEl) => {
         col = colEl.col.asOpaque(col);
         elemBgcol.set(colEl.el, col);
@@ -200,8 +206,20 @@ try
 
     //First pass - convert bg images to colors
     imgCounter = 0;
-    elementsUnder(document).forEach((element) => {
-      let url = getBgImageUrl(element);
+    textElementsUnder(document).forEach((element) => {
+      let el = element;
+      let url='';
+
+      //search for first ancestor that has a bgimage. Possibly stop on first with opaque bgcol, but still take its bgimage if any.
+      while (el instanceof Element) {
+        url = getBgImageUrl(el);
+        if(url) break;
+        else el = el.parentNode;
+      }
+      if(!(el instanceof Element)) return;
+      element = el;
+      
+      url = getBgImageUrl(element);
       if(url) {
         imgCounter++;
 
@@ -250,7 +268,7 @@ try
       }
     }, 3000);
 
-    function elementsUnder(el) {
+    function textElementsUnder(el) {
       let n, a = [],
           walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
       while (n = walk.nextNode()) {
@@ -265,10 +283,11 @@ try
     function correctThemAll() {
     	let elemCorrections = [];
       
-      elementsUnder(document.body).forEach((element) => {
+      textElementsUnder(document.body).forEach((element) => {
         //console.log(element.tagName);
         //if(element.getAttribute("ng-controller") != 'gogConnectCtrl as reclaim') return;
         //if(element.id != 'i016772892474772105') return;
+        //if(!element.textContent.startsWith('You will ')) return;
         let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
         if (fw < 400) element.style.setProperty("font-weight", 400, "important");
 
