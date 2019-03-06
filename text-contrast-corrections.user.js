@@ -10,10 +10,10 @@
 // @grant         GM.setValue
 // @grant         GM.listValues
 // @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/Configurator.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/Color.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/ElementColorFinder.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/ImageColorFinder.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Configurator.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Color.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/ElementColorFinder.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/ImageColorFinder.js
 // ==/UserScript==
 
 //Todo:
