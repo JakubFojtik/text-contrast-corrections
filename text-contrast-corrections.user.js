@@ -4,12 +4,14 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.19
+// @version       1.20
 // @run-at        document-idle
 // @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/Color.js
+// @require       http://localhost:8080/Color.js
+// @require       http://localhost:8080/ElementColorFinder.js
 // ==/UserScript==
 
+//require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/Color.js
 //Todo:
 //Rerun for lazy-loaded content e.g. comments on gog.com
 //Detect background gradients.
@@ -29,9 +31,15 @@
 try {
   (function () {
 
-    let elemBgcol = new Map();
     let colorThief = new ColorThief();
     let imgCounter = 0;
+    let elemBgcols = new Map();
+
+    //Set scrollbar color
+    let part = 120;
+    let parts = Array.apply(', ', Array(3)).map(x => part).join(',');
+    let scrCol = new Color(parts);
+    document.getElementsByTagName("HTML")[0].style.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
 
     function getBgImageUrl(element) {
       let url = window.getComputedStyle(element).getPropertyValue('background-image');
@@ -41,83 +49,6 @@ try {
         return repeat != 'no-repeat' ? url.split('"')[1] : null;
       }
     }
-
-    function getBgColor(el, bgProp) {
-      return elemBgcol.has(el) ? elemBgcol.get(el) : new Color(window.getComputedStyle(el).getPropertyValue(bgProp));
-    }
-
-    function logElText(el) {
-      return el.tagName + ' ' + el.className + ' ' + el.parentNode.tagName;
-    }
-
-    function findAndMergeBgCol(element, bgProp) {
-      let colors = []; //tuples of element and its bgcolor, so computed bgcolor can later be remembered
-
-      let bgcolor = new Color('rgb(255, 255, 255)'); //default bg color if all elements report transparent
-      let el = element;
-      let col;
-
-      while (el instanceof Element) {
-        col = getBgColor(el, bgProp); //Is getComputedStyle inspecting also parent elements for non-computable bgcolor? If yes, optimize?
-        //console.log(logElText(el)+col);
-        if (!(col instanceof Color)) alert(el.tagName + col);
-        if (!col.isTransparent()) {
-          colors.push({
-            col: col,
-            el: el
-          }); //save transparent colors for later blending
-        }
-        if (col.isOpaque()) { //need to reach an opaque color to blend the transparents into
-          bgcolor = col;
-          break;
-        }
-        el = el.parentNode;
-      }
-      if (!(el instanceof Element)) colors.push({
-        col: bgcolor,
-        el: el
-      }); //ensure final color is in the array
-      col = bgcolor;
-
-      //console.log(col + ' pak ' + colors.map(x=>x.col).join(', '));
-
-      //Compute all alpha colors with the final opaque color
-      //So Blue->10%Red->15%Green should be 85%(90%Blue+10%Red)+15%Green
-      //Todo gradients
-      //element.style.backgroundColor=col.toString();
-      //elemBgcol.set(element, col);
-      colors.reverse().slice(1).forEach((colEl) => {
-        col = colEl.col.asOpaque(col);
-        elemBgcol.set(colEl.el, col);
-
-        //colEl.el.style.backgroundColor=col.toString();
-      });
-
-      return col;
-    }
-
-    function computeColors(element, fgProp, bgProp) {
-      let bgColor = findAndMergeBgCol(element, bgProp);
-
-      //Now we can compute fg color even if it has alpha
-      let col = new Color(window.getComputedStyle(element).getPropertyValue(fgProp));
-      //console.log(element.tagName+element.className+element.name+col+bgColor);
-
-      let fgColor = col.asOpaque(bgColor);
-      //console.log(element.tagName+element.className+element.name+fgColor+bgColor);
-
-      return {
-        fgCol: fgColor,
-        bgCol: bgColor
-      };
-    }
-
-
-    //Set scrollbar color
-    let part = 120;
-    let parts = Array.apply(', ', Array(3)).map(x => part).join(',');
-    let scrCol = new Color(parts);
-    document.getElementsByTagName("HTML")[0].style.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
 
     //First pass - convert bg images to colors
     imgCounter = 0;
@@ -158,7 +89,7 @@ try {
           });
 
 
-          elemBgcol.set(element, new Color(dominantColor.join(',')));
+          elemBgcols.set(element, new Color(dominantColor.join(',')));
           //element.style.setProperty("background-color", new Color(dominantColor.join(',')).toString(), "important");
           imgCounter--;
           //console.log('done'+url);
@@ -207,7 +138,8 @@ try {
         let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
         if (fw < 400) element.style.setProperty("font-weight", 400, "important");
 
-        let cols = computeColors(element, 'color', 'background-color');
+        let colFinder = new ElementColorFinder(elemBgcols);
+        let cols = colFinder.computeColors(element, 'color', 'background-color');
         let col = cols.fgCol;
         let bgcol = cols.bgCol;
         //console.log(element.tagName+element.className+element.name+col+bgcol);

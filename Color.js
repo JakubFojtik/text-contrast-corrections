@@ -60,13 +60,14 @@ class Color {
     return sum / this.colorPartsBrightnessMax();
   }
   changeContrast(contrast, brighten) {
-    //To preserve color each part must be incremented equally
     let contrastChange = 255 * DESIRED_CONTRAST - contrast;
 
     let fun = brighten ? Math.min : Math.max;
     let limit = brighten ? 255 : 0;
     let op = brighten ? (a, b) => a + b : (a, b) => a - b;
 
+    //To preserve color each part must be incremented equally
+    //Adding 1 to each part increases brightness by 1
     this.getRGBParts().forEach((part, idx) => {
       let newPart = op(part, contrastChange);
       this.parts[idx] = fun(limit, newPart);
