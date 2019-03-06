@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.25
+// @version       1.26
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
@@ -16,7 +16,6 @@
 // @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/ImageColorFinder.js
 // ==/UserScript==
 
-//require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/Color.js
 //Todo:
 //Rerun for lazy-loaded content e.g. comments on gog.com
 //Detect background gradients.
@@ -53,9 +52,10 @@ try {
       window.setTimeout(action, 0);
     }
 
-    function forTextElementsUnder(el, callback) {
+    //for all text node parent elements under elemContainer starts the callback as an event
+    function forTextElementsUnder(elemContainer, callback) {
       let node, elems = [],
-        walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+        walk = document.createTreeWalker(elemContainer, NodeFilter.SHOW_TEXT, null, false);
       while (node = walk.nextNode()) {
         if (node.data.trim() == '') continue;
         let parent = node.parentNode;
@@ -68,7 +68,7 @@ try {
       });
     }
 
-    //First pass - convert bg images to colors
+    //First pass - convert bg images to colors, pass them to second pass
     let imageColorFinder = new ImageColorFinder(new ColorThief(), forTextElementsUnder, correctThemAll);
     imageColorFinder.findElemBgcols();
 
@@ -79,6 +79,7 @@ try {
       let desiredContrast = await config.getContrast();
 
       forTextElementsUnder(document.body, (element) => {
+        //debug 
         //console.log(element.tagName);
         //if(element.getAttribute("ng-controller") != 'gogConnectCtrl as reclaim') return;
         //if(element.id != 'i016772892474772105') return;
@@ -98,10 +99,9 @@ try {
           prop: "color",
           col: col.toString()
         });
-        //console.log(col.brightness() + ' ' + bgcol.brightness());
-        //if(element.tagName.localeCompare('code', 'en', {sensitivity: 'accent'}) == 0)
       });
 
+      //depends on previous events being finished. Synchronicity should be ensured by JS being single-threaded and running events in received order
       startAsEvent(() => {
         //Write the computed corrections last so they don't afect their computation
         elemCorrections.forEach((corr) => {
