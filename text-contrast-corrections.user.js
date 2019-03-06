@@ -6,10 +6,9 @@
 // @include       *
 // @version       1.24
 // @run-at        document-idle
-// @grant         GM.listValues
 // @grant         GM.getValue
 // @grant         GM.setValue
-// @grant         GM.deleteValue
+// @grant         GM.listValues
 // @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
 // @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/Configurator.js
 // @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/Color.js
