@@ -44,7 +44,7 @@ class ImageColorFinder {
         //ColorThief seemingly ignores transparent pixels, but not white pixels anymore
         let sourceImage = document.createElement("img");
         sourceImage.addEventListener('load', () => {
-          // let palette = this.colorThief.getPalette(sourceImage, 5);
+          let palette = this.colorThief.getPalette(sourceImage, 5);
           let dominantColor = palette[0];
           //console.log(palette);
 
@@ -65,23 +65,20 @@ class ImageColorFinder {
           //console.log('done'+url);
         });
         sourceImage.addEventListener('error', () => {
-          console.log('error');
+          console.error('error');
           this.imgCounter--;
         });
         sourceImage.addEventListener('abort', () => {
-          console.log('abort');
+          console.error('abort');
           this.imgCounter--;
         });
         sourceImage.src = url
-        //console.log(sourceImage.complete+url);
       }
     });
 
-    console.log('imgCounter '+this.imgCounter);
     //Wait for images to load
     let int = window.setInterval(() => {
     //console.log('imgCounterin '+this.imgCounter);
-      console.log(this.imgCounter);
       if (this.imgCounter != 0) return;
       else window.clearInterval(int);
       this.finish();
@@ -93,11 +90,10 @@ class ImageColorFinder {
         window.clearInterval(int);
         this.finish();
       }
-    }, 10000);
+    }, 5000);
   }
 
   finish() {
-    console.log('finish');
     this.callback(this.elemBgcols);
   }
 }
