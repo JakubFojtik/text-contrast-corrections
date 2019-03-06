@@ -158,7 +158,8 @@ try {
           });
 
 
-          element.style.setProperty("background-color", new Color(dominantColor.join(',')).toString(), "important");
+          elemBgcol.set(element, new Color(dominantColor.join(',')));
+          //element.style.setProperty("background-color", new Color(dominantColor.join(',')).toString(), "important");
           imgCounter--;
           //console.log('done'+url);
         });
@@ -233,4 +234,3 @@ try {
 } catch (e) {
   console.log(e);
 }
-
