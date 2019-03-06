@@ -4,7 +4,7 @@ class ElementColorFinder {
   constructor(elemBgcols) {
     //Background colors of elements. Needs converted colors of background images, otherwise they will be ignored in computations
     this.elemBgcol = elemBgcols;
-    this.nullElement = document.createElement("div"); 
+    this.nullElement = document.createElement("div");
   }
 
   getBgColor(el, bgProp) {
@@ -28,10 +28,10 @@ class ElementColorFinder {
       }
       el = el.parentNode;
     }
-    
+
     //ensure default bgcolor is in the array for textnodes in body without bgcol set
     let bgcolor = new Color('rgb(255, 255, 255)'); //default bg color if all elements report non-opaque
-    if(!(el.parentNode instanceof Element)) {
+    if (!(el.parentNode instanceof Element)) {
       colors.push({
         col: bgcolor,
         el: this.nullElement

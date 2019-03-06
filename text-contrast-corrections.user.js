@@ -4,13 +4,14 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.23
+// @version       1.24
 // @run-at        document-idle
 // @grant         GM.listValues
 // @grant         GM.getValue
 // @grant         GM.setValue
 // @grant         GM.deleteValue
 // @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/Configurator.js
 // @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/Color.js
 // @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/ElementColorFinder.js
 // @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/ImageColorFinder.js
@@ -33,49 +34,13 @@
 // - first pass: convert all relevant bgimages to colors
 // - second pass: convert all alpha color to opaque and correct contrast
 
-//How contrasting must each text be to its background, from 0 to 1, where 0 is no change and 1 turns everything black & white
-const DEFAULT_DESIRED_CONTRAST = 0.8;
-const DESIRED_CONTRAST_KEY= 'desiredContrast';
-
 try {
-  (async () => {
-    if(window.location.href == 'http://example.com/') {
-      
-      let descriptions = new Map();
-      descriptions.set(DESIRED_CONTRAST_KEY, 'Desired contrast (0.0 to 1.0)');
-      
-      let div = document.createElement('div');
-      document.body.appendChild(div);
-      let addNewElem = (tagName, content = '', parent = div) => {
-        let elem = document.createElement(tagName);
-        elem.appendChild(document.createTextNode(content));
-        parent.appendChild(elem);
-        return elem;
-      };
-      
-      let inputs = new Map();
-      addNewElem('h2', 'Text contrast corrections');
-      addNewElem('u', 'Userscript configuration');
-      let list = addNewElem('dl');
-      (await GM.listValues()).forEach(async (name) => {
-        let labelText = descriptions.has(name) ? descriptions.get(name) : name;
-        let label = addNewElem('dt', labelText, list);
-        label.style.float = 'left';
-        label.style.width = '50%';
-      	let item = addNewElem('dd', '', list);
-        let input = addNewElem('input', '', item);
-        input.name = name;
-        input.value = await GM.getValue(name);
-        inputs.set(input, input.value);
-      });
-      let button = addNewElem('input');
-      button.type = 'submit';
-      button.value = 'Save';
-      button.addEventListener('click',async  () => {
-        inputs.forEach(async (oldValue, input) => {
-          await GM.setValue(input.name, input.value);
-        });
-      });
+  (async() => {
+    let config = new Configurator();
+
+    //Hijack this page and show configuration box there
+    if (window.location.href == 'http://example.com/') {
+      config.displayForm();
     }
 
     //Set scrollbar color
@@ -94,21 +59,16 @@ try {
       }
       return a;
     }
-	
-	//First pass - convert bg images to colors
-	let imageColorFinder = new ImageColorFinder(new ColorThief(), textElementsUnder, correctThemAll);
-	imageColorFinder.findElemBgcols();
+
+    //First pass - convert bg images to colors
+    let imageColorFinder = new ImageColorFinder(new ColorThief(), textElementsUnder, correctThemAll);
+    imageColorFinder.findElemBgcols();
 
     //Second pass - compare and correct colors
     async function correctThemAll(elemBgcols) {
       let elemCorrections = [];
       let elColFinder = new ElementColorFinder(elemBgcols);
-      let desiredContrast = DEFAULT_DESIRED_CONTRAST;
-      let configContrast = Number(await GM.getValue(DESIRED_CONTRAST_KEY));
-      if(configContrast != NaN && configContrast >= 0 && configContrast <= 1) {
-        desiredContrast = configContrast;
-      }
-      await GM.setValue(DESIRED_CONTRAST_KEY, desiredContrast);
+      let desiredContrast = await config.getContrast();
 
       textElementsUnder(document.body).forEach((element) => {
         //console.log(element.tagName);
@@ -143,5 +103,5 @@ try {
     }
   })();
 } catch (e) {
-  console.log(e);
+  console.error(e);
 }
