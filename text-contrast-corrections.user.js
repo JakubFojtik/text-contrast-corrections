@@ -9,6 +9,7 @@
 // @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
 // @require       http://localhost:8080/Color.js
 // @require       http://localhost:8080/ElementColorFinder.js
+// @require       http://localhost:8080/ImageColorFinder.js
 // ==/UserScript==
 
 //require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/Color.js
@@ -31,89 +32,11 @@
 try {
   (function () {
 
-    let colorThief = new ColorThief();
-    let imgCounter = 0;
-    let elemBgcols = new Map();
-
     //Set scrollbar color
     let part = 120;
     let parts = Array.apply(', ', Array(3)).map(x => part).join(',');
     let scrCol = new Color(parts);
     document.getElementsByTagName("HTML")[0].style.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
-
-    function getBgImageUrl(element) {
-      let url = window.getComputedStyle(element).getPropertyValue('background-image');
-      if (url && url != 'none') {
-        //skip nonrepeated bg in case of e.g. list item bullet images
-        let repeat = window.getComputedStyle(element).getPropertyValue('background-repeat');
-        return repeat != 'no-repeat' ? url.split('"')[1] : null;
-      }
-    }
-
-    //First pass - convert bg images to colors
-    imgCounter = 0;
-    textElementsUnder(document).forEach((element) => {
-      let el = element;
-      let url = '';
-
-      //search for first ancestor that has a bgimage. Possibly stop on first with opaque bgcol, but still take its bgimage if any.
-      while (el instanceof Element) {
-        url = getBgImageUrl(el);
-        if (url) break;
-        else el = el.parentNode;
-      }
-      if (!(el instanceof Element)) return;
-      element = el;
-
-      url = getBgImageUrl(element);
-      if (url) {
-        imgCounter++;
-
-        //copypaste of ColorThief.prototype.getColorFromUrl. Load events are sometimes not fired for image that already loaded e.g. <body> background image.
-        //ColorThief seemingly ignores transparent pixels, but not white pixels anymore
-        let sourceImage = document.createElement("img");
-        var thief = colorThief;
-        sourceImage.addEventListener('load', function () {
-          var palette = thief.getPalette(sourceImage, 5);
-          var dominantColor = palette[0];
-          //console.log(palette);
-
-          var avgColor = palette.reduce((a, b) => {
-            return a.map((x, idx) => {
-              return (x + b[idx]) / 2;
-            });
-          });
-          //Add some weight to the dominant color. Maybe pallete returns colors in descending dominance?
-          dominantColor = dominantColor.map((x, idx) => {
-            return 0.8 * x + 0.2 * avgColor[idx];
-          });
-
-
-          elemBgcols.set(element, new Color(dominantColor.join(',')));
-          //element.style.setProperty("background-color", new Color(dominantColor.join(',')).toString(), "important");
-          imgCounter--;
-          //console.log('done'+url);
-        });
-        sourceImage.src = url
-        //console.log(sourceImage.complete+url);
-      }
-    });
-
-    //Wait for images to load
-    let int = window.setInterval(() => {
-      //console.log(imgCounter);
-      if (imgCounter != 0) return;
-      else window.clearInterval(int);
-      correctThemAll();
-    }, 200);
-
-    //Stop witing after fixed time
-    window.setTimeout(() => {
-      if (imgCounter != 0) {
-        window.clearInterval(int);
-        correctThemAll();
-      }
-    }, 3000);
 
     function textElementsUnder(el) {
       let n, a = [],
@@ -125,10 +48,15 @@ try {
       }
       return a;
     }
+	
+	//First pass - convert bg images to colors
+	let imageColorFinder = new ImageColorFinder(new ColorThief(), textElementsUnder, correctThemAll);
+	imageColorFinder.findElemBgcols();
 
     //Second pass - compare and correct colors
-    function correctThemAll() {
+    function correctThemAll(elemBgcols) {
       let elemCorrections = [];
+      let elColFinder = new ElementColorFinder(elemBgcols);
 
       textElementsUnder(document.body).forEach((element) => {
         //console.log(element.tagName);
@@ -138,8 +66,7 @@ try {
         let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
         if (fw < 400) element.style.setProperty("font-weight", 400, "important");
 
-        let colFinder = new ElementColorFinder(elemBgcols);
-        let cols = colFinder.computeColors(element, 'color', 'background-color');
+        let cols = elColFinder.computeColors(element, 'color', 'background-color');
         let col = cols.fgCol;
         let bgcol = cols.bgCol;
         //console.log(element.tagName+element.className+element.name+col+bgcol);

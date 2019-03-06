@@ -4,6 +4,7 @@ class ElementColorFinder {
   constructor(elemBgcols) {
     //Background colors of elements. Needs converted colors of background images, otherwise they will be ignored in computations
     this.elemBgcol = elemBgcols;
+    console.log(elemBgcols.size);
   }
 
   getBgColor(el, bgProp) {
