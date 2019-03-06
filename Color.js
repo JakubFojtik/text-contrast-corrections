@@ -80,7 +80,8 @@ class Color {
       let contrast = Math.abs(this.brightness() - otherCol.brightness());
       if (contrast >= 255 * DESIRED_CONTRAST) return;
 
-      let brighten = this.brightness() > otherCol.brightness();
+      //choose opposite brightness to the other color
+      let brighten = otherCol.brightness() < 128;
       this.changeContrast(contrast, brighten);
     }
   }
