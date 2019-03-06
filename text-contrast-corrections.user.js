@@ -4,12 +4,12 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast.
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.20
+// @version       1.21
 // @run-at        document-idle
 // @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
-// @require       http://localhost:8080/Color.js
-// @require       http://localhost:8080/ElementColorFinder.js
-// @require       http://localhost:8080/ImageColorFinder.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/Color.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/ElementColorFinder.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/ImageColorFinder.js
 // ==/UserScript==
 
 //require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/Color.js

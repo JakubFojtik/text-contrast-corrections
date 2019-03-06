@@ -4,7 +4,7 @@ class ElementColorFinder {
   constructor(elemBgcols) {
     //Background colors of elements. Needs converted colors of background images, otherwise they will be ignored in computations
     this.elemBgcol = elemBgcols;
-    console.log(elemBgcols.size);
+    this.nullElement = document.createElement("div"); 
   }
 
   getBgColor(el, bgProp) {
@@ -13,43 +13,40 @@ class ElementColorFinder {
 
   findAndMergeBgCol(element, bgProp) {
     let colors = []; //tuples of element and its bgcolor, so computed bgcolor can later be remembered
-
-    let bgcolor = new Color('rgb(255, 255, 255)'); //default bg color if all elements report transparent
     let el = element;
-    let col;
 
     while (el instanceof Element) {
-      col = this.getBgColor(el, bgProp); //Is getComputedStyle inspecting also parent elements for non-computable bgcolor? If yes, optimize?
+      let col = this.getBgColor(el, bgProp); //Is getComputedStyle inspecting also parent elements for non-computable bgcolor? If yes, optimize?
       if (!(col instanceof Color)) alert('not a Color:' + el.tagName + col);
-      if (!col.isTransparent()) {
-        colors.push({
-          col: col,
-          el: el
-        }); //save transparent colors for later blending
-      }
+      //save non-opaque colors for later blending
+      colors.push({
+        col: col,
+        el: el
+      });
       if (col.isOpaque()) { //need to reach an opaque color to blend the transparents into
-        bgcolor = col;
         break;
       }
       el = el.parentNode;
     }
-    if (!(el instanceof Element)) colors.push({
-      col: bgcolor,
-      el: el
-    }); //ensure final color is in the array
-    col = bgcolor;
-
-    //console.log(col + ' pak ' + colors.map(x=>x.col).join(', '));
+    
+    //ensure default bgcolor is in the array for textnodes in body without bgcol set
+    let bgcolor = new Color('rgb(255, 255, 255)'); //default bg color if all elements report non-opaque
+    if(!(el.parentNode instanceof Element)) {
+      colors.push({
+        col: bgcolor,
+        el: this.nullElement
+      });
+    }
+    let col = colors[0].col;
 
     //Compute all alpha colors with the final opaque color
     //So Blue->10%Red->15%Green should be 85%(90%Blue+10%Red)+15%Green
     //Todo gradients
-    //element.style.backgroundColor=col.toString();
-    //this.elemBgcol.set(element, col);
-    colors.reverse().slice(1).forEach((colEl) => {
+    colors.reverse().forEach((colEl) => {
       col = colEl.col.asOpaque(col);
       this.elemBgcol.set(colEl.el, col);
 
+      //force assign computed bgcolor to element for debug
       //colEl.el.style.backgroundColor=col.toString();
     });
 
