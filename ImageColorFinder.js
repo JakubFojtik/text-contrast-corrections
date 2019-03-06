@@ -21,7 +21,7 @@ class ImageColorFinder {
 
   findElemBgcols() {
     this.imgCounter = 0;
-    this.textElementsUnder(document).forEach((element) => {
+    this.textElementsUnder(document, (element) => {
       let el = element;
       let url = '';
 
@@ -78,7 +78,7 @@ class ImageColorFinder {
 
     //Wait for images to load
     let int = window.setInterval(() => {
-    //console.log('imgCounterin '+this.imgCounter);
+      //console.log('imgCounterin '+this.imgCounter);
       if (this.imgCounter != 0) return;
       else window.clearInterval(int);
       this.finish();

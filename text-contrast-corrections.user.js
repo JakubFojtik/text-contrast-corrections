@@ -40,6 +40,7 @@ try {
     //Hijack this page and show configuration box there
     if (window.location.href == 'http://example.com/') {
       config.displayForm();
+      return;
     }
 
     //Set scrollbar color
@@ -48,19 +49,27 @@ try {
     let scrCol = new Color(parts);
     document.getElementsByTagName("HTML")[0].style.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
 
-    function textElementsUnder(el) {
-      let n, a = [],
+    function startAsEvent(action) {
+      window.setTimeout(action, 0);
+    }
+
+    function forTextElementsUnder(el, callback) {
+      let node, elems = [],
         walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
-      while (n = walk.nextNode()) {
-        if (n.data.trim() == '') continue;
-        let parent = n.parentNode;
-        if (parent instanceof Element) a.push(parent);
+      while (node = walk.nextNode()) {
+        if (node.data.trim() == '') continue;
+        let parent = node.parentNode;
+        if (parent instanceof Element) elems.push(parent);
       }
-      return a;
+      elems.forEach(el => {
+        startAsEvent(() => {
+          callback(el);
+        });
+      });
     }
 
     //First pass - convert bg images to colors
-    let imageColorFinder = new ImageColorFinder(new ColorThief(), textElementsUnder, correctThemAll);
+    let imageColorFinder = new ImageColorFinder(new ColorThief(), forTextElementsUnder, correctThemAll);
     imageColorFinder.findElemBgcols();
 
     //Second pass - compare and correct colors
@@ -69,7 +78,7 @@ try {
       let elColFinder = new ElementColorFinder(elemBgcols);
       let desiredContrast = await config.getContrast();
 
-      textElementsUnder(document.body).forEach((element) => {
+      forTextElementsUnder(document.body, (element) => {
         //console.log(element.tagName);
         //if(element.getAttribute("ng-controller") != 'gogConnectCtrl as reclaim') return;
         //if(element.id != 'i016772892474772105') return;
@@ -93,12 +102,13 @@ try {
         //if(element.tagName.localeCompare('code', 'en', {sensitivity: 'accent'}) == 0)
       });
 
-      //Write the computed corrections last so they don't afect their computation
-      elemCorrections.forEach((corr) => {
-        corr.el.style.setProperty(corr.prop, corr.col, "important");
-        //console.log(corr.el.tagName+','+corr.prop+','+corr.col);
+      startAsEvent(() => {
+        //Write the computed corrections last so they don't afect their computation
+        elemCorrections.forEach((corr) => {
+          corr.el.style.setProperty(corr.prop, corr.col, "important");
+          //console.log(corr.el.tagName+','+corr.prop+','+corr.col);
+        });
       });
-
     }
   })();
 } catch (e) {
