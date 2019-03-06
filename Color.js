@@ -1,8 +1,5 @@
 // RGBA color parts holder and manipulator
 
-//How contrasting must each text be to its background, from 0 to 1, where 0 is no change and 1 turns everything black & white
-const DESIRED_CONTRAST = 0.8;
-
 //RGBA opacity extremes
 const TRANSPARENT = 0;
 const OPAQUE = 1;
@@ -59,8 +56,7 @@ class Color {
     let sum = this.getRGBParts().map((x, i) => x * coefs[i]).reduce((a, b) => a + b, 0);
     return sum / this.colorPartsBrightnessMax();
   }
-  changeContrast(contrast, brighten) {
-    let contrastChange = 255 * DESIRED_CONTRAST - contrast;
+  changeContrast(contrastChange, brighten) {
 
     let fun = brighten ? Math.min : Math.max;
     let limit = brighten ? 255 : 0;
@@ -73,16 +69,17 @@ class Color {
       this.parts[idx] = fun(limit, newPart);
     });
   }
-  contrastTo(otherCol) {
+  contrastTo(otherCol, desiredContrast) {
     //Trivialy redistributes brightness increments if one color part reaches min/max
     //todo do it properly in constant time
     for (let i = 0; i < 10; i++) {
       let contrast = Math.abs(this.brightness() - otherCol.brightness());
-      if (contrast >= 255 * DESIRED_CONTRAST) return;
+      if (contrast >= 255 * desiredContrast) return;
 
       //choose opposite brightness to the other color
+      let contrastChange = 255 * desiredContrast - contrast;
       let brighten = otherCol.brightness() < 128;
-      this.changeContrast(contrast, brighten);
+      this.changeContrast(contrastChange, brighten);
     }
   }
   //Computes final color of alpha color on solid background
