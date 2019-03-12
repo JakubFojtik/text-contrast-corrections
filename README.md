@@ -27,3 +27,4 @@ So you can set ratio of 1 (100%) to make all text black (or white on dark backgr
 
  - does not yet run on lazy-loaded content universaly, only with specific hacks for e.g. GitHub
  - does not work with background gradients
+ - does not choose contrasting colors, just opposite brightness
