@@ -20,5 +20,5 @@ the contents of [text-contrast-corrections.user.js](https://github.com/JakubFojt
 
 # Todos
 
- - does not yet run on lazy-loaded content, e.g. here on GitHub the file view has to be reloaded for the script to work
- - does not work with background images or gradients
+ - does not yet run on lazy-loaded content universaly, only with specific hacks for e.g. GitHub
+ - does not work with background gradients
