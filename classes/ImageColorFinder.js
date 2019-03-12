@@ -27,7 +27,7 @@ class ImageColorFinder {
 
       //search for first ancestor that has a bgimage. Possibly stop on first with opaque bgcol, but still take its bgimage if any.
       while (el instanceof Element) {
-        //if(this.elemBgcols.has(el)) return;
+        if (this.elemBgcols.has(el)) return;
         url = this.getBgImageUrl(el);
         if (url) break;
         else el = el.parentNode;
@@ -37,32 +37,33 @@ class ImageColorFinder {
 
       url = this.getBgImageUrl(element);
       if (url) {
-        console.log(url);
         this.imgCounter++;
 
         //copypaste of ColorThief.prototype.getColorFromUrl. Load events are sometimes not fired for image that already loaded e.g. <body> background image.
         //ColorThief seemingly ignores transparent pixels, but not white pixels anymore
         let sourceImage = document.createElement("img");
         sourceImage.addEventListener('load', () => {
-          let palette = this.colorThief.getPalette(sourceImage, 5);
-          let dominantColor = palette[0];
-          //console.log(palette);
+          let bgColor = window.getComputedStyle(element).getPropertyValue('background-color');
+          let palette = this.colorThief.getPalette(sourceImage, 10);
+          //palette can be null for transparent images
+          if (palette != null) {
+            let dominantColor = palette[0];
 
-          let avgColor = palette.reduce((a, b) => {
-            return a.map((x, idx) => {
-              return (x + b[idx]) / 2;
+            let avgColor = palette.reduce((a, b) => {
+              return a.map((x, idx) => {
+                return (x + b[idx]) / 2;
+              });
             });
-          });
-          //Add some weight to the dominant color. Maybe pallete returns colors in descending dominance?
-          dominantColor = dominantColor.map((x, idx) => {
-            return 0.8 * x + 0.2 * avgColor[idx];
-          });
+            //Add some weight to the dominant color. Maybe pallete returns colors in descending dominance?
+            dominantColor = dominantColor.map((x, idx) => {
+              return 0.8 * x + 0.2 * avgColor[idx];
+            });
+            bgColor = dominantColor.join(',');
+          }
 
-
-          this.elemBgcols.set(element, new Color(dominantColor.join(',')));
+          this.elemBgcols.set(element, new Color(bgColor));
           //element.style.setProperty("background-color", new Color(dominantColor.join(',')).toString(), "important");
           this.imgCounter--;
-          //console.log('done'+url);
         });
         sourceImage.addEventListener('error', () => {
           console.error('error');
@@ -72,6 +73,7 @@ class ImageColorFinder {
           console.error('abort');
           this.imgCounter--;
         });
+        this.elemBgcols.set(element, null);
         sourceImage.src = url
       }
     });
@@ -87,6 +89,7 @@ class ImageColorFinder {
     //Stop witing after fixed time
     window.setTimeout(() => {
       if (this.imgCounter != 0) {
+        console.error('some images didnt load');
         window.clearInterval(int);
         this.finish();
       }
@@ -94,6 +97,13 @@ class ImageColorFinder {
   }
 
   finish() {
+    this.elemBgcols.forEach((val, key, map) => {
+      if (!val) {
+        map.delete(key);
+        let url = window.getComputedStyle(key).getPropertyValue('background-image');
+        console.log('is null ' + url);
+      }
+    });
     this.callback(this.elemBgcols);
   }
 }
