@@ -139,6 +139,11 @@ try {
           //Set scrollbar color
           let scrCol = new Color('120 120 120');
           let bodyBg = elemBgcols.get(document.body);
+          if(!bodyBg) {
+            bodyBg = window.getComputedStyle(document.body).getPropertyValue('background-color');
+            if(!bodyBg) bodyBg = 'rgb(120 120 120)';
+            bodyBg = new Color(bodyBg);
+          }
           scrCol.contrastTo(bodyBg, desiredContrast);
           document.getElementsByTagName("HTML")[0].style.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
           let scrollWidth = await config.getScrollWidth();
