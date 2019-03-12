@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.26
+// @version       1.27
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
@@ -31,6 +31,7 @@
 // - need to convert all bgimages to bgcolors, including textnode element parents, not just them
 // - first pass: convert all relevant bgimages to colors
 // - second pass: convert all alpha color to opaque and correct contrast
+// - some sites are crazy, e.g. wikia sets background via sibling div with absolute position
 
 try {
   (async() => {
@@ -41,6 +42,36 @@ try {
       config.displayForm();
       return;
     }
+
+    //Hacks
+
+    //Wikia - background via sibling div with absolute position and opacity
+    let bgEl = document.getElementById('WikiaPageBackground');
+    if (bgEl) {
+      let newBg = window.getComputedStyle(bgEl).getPropertyValue('background-color');
+      let opacity = window.getComputedStyle(bgEl).getPropertyValue('opacity');
+      bgEl.style.background = 'none';
+      bgEl.parentNode.style.background = newBg;
+      bgEl.parentNode.style.opacity = opacity;
+    }
+
+    //Github - lazy loaded content
+    //from https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
+    var targetNode = document.getElementById('js-pjax-loader-bar');
+    if (targetNode) {
+      let callback = function (mutationsList) {
+        for (let mutation of mutationsList) {
+          if (mutation.attributeName == 'class' && targetNode.className == 'pjax-loader-bar') {
+            restart();
+          }
+        }
+      };
+      let observer = new MutationObserver(callback);
+      observer.observe(targetNode, {
+        attributes: true
+      });
+    }
+
 
     //Set scrollbar color
     let part = 120;
@@ -68,48 +99,55 @@ try {
       });
     }
 
-    //First pass - convert bg images to colors, pass them to second pass
-    let imageColorFinder = new ImageColorFinder(new ColorThief(), forTextElementsUnder, correctThemAll);
-    imageColorFinder.findElemBgcols();
+    // The whole thing wrapped so it can be restarted on lazy-loaded content.
+    //todo optimize -  reuse old elem->color maps
+    function restart() {
 
-    //Second pass - compare and correct colors
-    async function correctThemAll(elemBgcols) {
-      let elemCorrections = [];
-      let elColFinder = new ElementColorFinder(elemBgcols);
-      let desiredContrast = await config.getContrast();
+      //First pass - convert bg images to colors, pass them to second pass
+      let imageColorFinder = new ImageColorFinder(new ColorThief(), forTextElementsUnder, correctThemAll);
+      imageColorFinder.findElemBgcols();
 
-      forTextElementsUnder(document.body, (element) => {
-        //debug 
-        //console.log(element.tagName);
-        //if(element.getAttribute("ng-controller") != 'gogConnectCtrl as reclaim') return;
-        //if(element.id != 'i016772892474772105') return;
-        //if(!element.textContent.startsWith('You will ')) return;
-        let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
-        if (fw < 400) element.style.setProperty("font-weight", 400, "important");
+      //Second pass - compare and correct colors
+      async function correctThemAll(elemBgcols) {
+        let elemCorrections = [];
+        let elColFinder = new ElementColorFinder(elemBgcols);
+        let desiredContrast = await config.getContrast();
 
-        let cols = elColFinder.computeColors(element, 'color', 'background-color');
-        let col = cols.fgCol;
-        let bgcol = cols.bgCol;
-        //console.log(element.tagName+element.className+element.name+col+bgcol);
-        //console.log(col.brightness() + ' ' + bgcol.brightness());
+        forTextElementsUnder(document.body, (element) => {
+          //debug 
+          //console.log(element.tagName);
+          //if(element.getAttribute("ng-controller") != 'gogConnectCtrl as reclaim') return;
+          //if(element.id != 'i016772892474772105') return;
+          //if(!element.textContent.startsWith('You will ')) return;
+          let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
+          if (fw < 400) element.style.setProperty("font-weight", 400, "important");
 
-        col.contrastTo(bgcol, desiredContrast);
-        elemCorrections.push({
-          el: element,
-          prop: "color",
-          col: col.toString()
+          let cols = elColFinder.computeColors(element, 'color', 'background-color');
+          let col = cols.fgCol;
+          let bgcol = cols.bgCol;
+          //console.log(element.tagName+element.className+element.name+col+bgcol);
+          //console.log(col.brightness() + ' ' + bgcol.brightness());
+
+          col.contrastTo(bgcol, desiredContrast);
+          elemCorrections.push({
+            el: element,
+            prop: "color",
+            col: col.toString()
+          });
         });
-      });
 
-      //depends on previous events being finished. Synchronicity should be ensured by JS being single-threaded and running events in received order
-      startAsEvent(() => {
-        //Write the computed corrections last so they don't afect their computation
-        elemCorrections.forEach((corr) => {
-          corr.el.style.setProperty(corr.prop, corr.col, "important");
-          //console.log(corr.el.tagName+','+corr.prop+','+corr.col);
+        //depends on previous events being finished. Synchronicity should be ensured by JS being single-threaded and running events in received order
+        startAsEvent(() => {
+          //Write the computed corrections last so they don't afect their computation
+          elemCorrections.forEach((corr) => {
+            corr.el.style.setProperty(corr.prop, corr.col, "important");
+            //console.log(corr.el.tagName+','+corr.prop+','+corr.col);
+          });
         });
-      });
+      }
     }
+    restart();
+
   })();
 } catch (e) {
   console.error(e);
