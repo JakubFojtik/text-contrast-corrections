@@ -4,20 +4,34 @@
 const DEFAULT_DESIRED_CONTRAST = 0.8;
 const DESIRED_CONTRAST_KEY = 'desiredContrast';
 
+//Should scrollbar be thinner?
+const DEFAULT_SCROLL_WIDTH = 'thin';
+const SCROLL_WIDTH_KEY = 'scrollWidth';
+
 class Configurator {
   constructor() {
     this.descriptions = new Map();
     this.descriptions.set(DESIRED_CONTRAST_KEY, 'Desired contrast (0.0 to 1.0)');
+    this.descriptions.set(SCROLL_WIDTH_KEY, 'Scrollbar width (normal or thin)');
   }
   async getContrast() {
-    let contrast = Number(await GM.getValue(DESIRED_CONTRAST_KEY));
-    //do not simlpyfy range check, would not filter out uncomparable values
-    if (contrast == NaN || !(0 <= contrast && contrast <= 1)) {
+    let contrastText = await GM.getValue(DESIRED_CONTRAST_KEY);
+    let contrast = Number(contrastText);
+    //do not simplify range check, would not filter out uncomparable values
+    if (contrastText === '' || contrast == NaN || !(0 <= contrast && contrast <= 1)) {
       //replace invalid configured value with default
       contrast = DEFAULT_DESIRED_CONTRAST;
       await GM.setValue(DESIRED_CONTRAST_KEY, contrast);
     }
     return contrast;
+  }
+  async getScrollWidth() {
+    let width = await GM.getValue(SCROLL_WIDTH_KEY);
+    if (!width || !(width == 'normal' || width == 'thin')) {
+      width = DEFAULT_SCROLL_WIDTH;
+      await GM.setValue(SCROLL_WIDTH_KEY, width);
+    }
+    return width;
   }
   async displayForm() {
     let box = document.body;

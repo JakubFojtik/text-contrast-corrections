@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.27
+// @version       1.28
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
@@ -20,7 +20,6 @@
 //Rerun for lazy-loaded content e.g. comments on gog.com
 //Detect background gradients.
 //Ask for bg image only if nested element needs it. load it async, in callback just rerun for child elements of the image
-//Choose scrollbar foreground color to contrast page background.
 
 //Assumptions / notes
 // - bgcolor is not computed, has to be guessed from parent elements
@@ -71,13 +70,6 @@ try {
         attributes: true
       });
     }
-
-
-    //Set scrollbar color
-    let part = 120;
-    let parts = Array.apply(', ', Array(3)).map(x => part).join(',');
-    let scrCol = new Color(parts);
-    document.getElementsByTagName("HTML")[0].style.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
 
     function startAsEvent(action) {
       window.setTimeout(action, 0);
@@ -137,16 +129,26 @@ try {
         });
 
         //depends on previous events being finished. Synchronicity should be ensured by JS being single-threaded and running events in received order
-        startAsEvent(() => {
+        startAsEvent(async () => {
           //Write the computed corrections last so they don't afect their computation
           elemCorrections.forEach((corr) => {
             corr.el.style.setProperty(corr.prop, corr.col, "important");
             //console.log(corr.el.tagName+','+corr.prop+','+corr.col);
           });
+          
+          //Set scrollbar color
+          let scrCol = new Color('120 120 120');
+          let bodyBg = elemBgcols.get(document.body);
+          scrCol.contrastTo(bodyBg, desiredContrast);
+          document.getElementsByTagName("HTML")[0].style.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
+          let scrollWidth = await config.getScrollWidth();
+          document.getElementsByTagName("HTML")[0].style.scrollbarWidth = scrollWidth;
         });
+
       }
     }
     restart();
+    
 
   })();
 } catch (e) {
