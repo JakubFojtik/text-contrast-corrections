@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.28
+// @version       1.29
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
@@ -48,10 +48,13 @@ try {
     let bgEl = document.getElementById('WikiaPageBackground');
     if (bgEl) {
       let newBg = window.getComputedStyle(bgEl).getPropertyValue('background-color');
-      let opacity = window.getComputedStyle(bgEl).getPropertyValue('opacity');
-      bgEl.style.background = 'none';
-      bgEl.parentNode.style.background = newBg;
-      bgEl.parentNode.style.opacity = opacity;
+      //do not reapply deleted background
+      if(newBg != 'rgba(0, 0, 0, 0)') {
+        let opacity = window.getComputedStyle(bgEl).getPropertyValue('opacity');
+        bgEl.style.background = 'none';
+        bgEl.parentNode.style.background = newBg;
+        bgEl.parentNode.style.opacity = opacity;
+      }
     }
 
     //Github - lazy loaded content
