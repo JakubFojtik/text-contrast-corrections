@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.29
+// @version       1.30
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
@@ -139,18 +139,20 @@ try {
             //console.log(corr.el.tagName+','+corr.prop+','+corr.col);
           });
           
-          //Set scrollbar color
-          let scrCol = new Color('120 120 120');
+          //Set computed body background color, will only be used for scrollbar background
           let bodyBg = elemBgcols.get(document.body);
           if(!bodyBg) {
             bodyBg = window.getComputedStyle(document.body).getPropertyValue('background-color');
             if(!bodyBg) bodyBg = 'rgb(120 120 120)';
             bodyBg = new Color(bodyBg);
           }
+          document.body.style.backgroundColor = bodyBg.toString();
+          //Set scrollbar color
+          let scrCol = new Color('120 120 120');
           scrCol.contrastTo(bodyBg, desiredContrast);
-          document.getElementsByTagName("HTML")[0].style.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
-          let scrollWidth = await config.getScrollWidth();
-          document.getElementsByTagName("HTML")[0].style.scrollbarWidth = scrollWidth;
+          let htmlStyle = document.getElementsByTagName("HTML")[0].style;
+          htmlStyle.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
+          htmlStyle.scrollbarWidth = await config.getScrollWidth();
         });
 
       }
