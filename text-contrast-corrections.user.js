@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.28
+// @version       1.31
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
@@ -17,8 +17,7 @@
 // ==/UserScript==
 
 //Todo:
-//Rerun for lazy-loaded content e.g. comments on gog.com
-//Detect background gradients.
+//Rerun for lazy-loaded content universally e.g. comments on gog.com
 //Ask for bg image only if nested element needs it. load it async, in callback just rerun for child elements of the image
 
 //Assumptions / notes
@@ -48,10 +47,13 @@ try {
     let bgEl = document.getElementById('WikiaPageBackground');
     if (bgEl) {
       let newBg = window.getComputedStyle(bgEl).getPropertyValue('background-color');
-      let opacity = window.getComputedStyle(bgEl).getPropertyValue('opacity');
-      bgEl.style.background = 'none';
-      bgEl.parentNode.style.background = newBg;
-      bgEl.parentNode.style.opacity = opacity;
+      //do not reapply deleted background
+      if(newBg != 'rgba(0, 0, 0, 0)') {
+        let opacity = window.getComputedStyle(bgEl).getPropertyValue('opacity');
+        bgEl.style.background = 'none';
+        bgEl.parentNode.style.background = newBg;
+        bgEl.parentNode.style.opacity = opacity;
+      }
     }
 
     //Github - lazy loaded content
@@ -136,18 +138,20 @@ try {
             //console.log(corr.el.tagName+','+corr.prop+','+corr.col);
           });
           
-          //Set scrollbar color
-          let scrCol = new Color('120 120 120');
+          //Set computed body background color, will only be used for scrollbar background
           let bodyBg = elemBgcols.get(document.body);
           if(!bodyBg) {
             bodyBg = window.getComputedStyle(document.body).getPropertyValue('background-color');
             if(!bodyBg) bodyBg = 'rgb(120 120 120)';
             bodyBg = new Color(bodyBg);
           }
+          document.body.style.backgroundColor = bodyBg.toString();
+          //Set scrollbar color
+          let scrCol = new Color('120 120 120');
           scrCol.contrastTo(bodyBg, desiredContrast);
-          document.getElementsByTagName("HTML")[0].style.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
-          let scrollWidth = await config.getScrollWidth();
-          document.getElementsByTagName("HTML")[0].style.scrollbarWidth = scrollWidth;
+          let htmlStyle = document.getElementsByTagName("HTML")[0].style;
+          htmlStyle.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
+          htmlStyle.scrollbarWidth = await config.getScrollWidth();
         });
 
       }

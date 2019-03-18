@@ -13,10 +13,34 @@ class ImageColorFinder {
   getBgImageUrl(element) {
     let url = window.getComputedStyle(element).getPropertyValue('background-image');
     if (url && url != 'none') {
-      //skip nonrepeated bg in case of e.g. list item bullet images
-      let repeat = window.getComputedStyle(element).getPropertyValue('background-repeat');
-      return repeat != 'no-repeat' ? url.split('"')[1] : null;
+      if (url.startsWith('url("')) {
+        //skip nonrepeated bg in case of e.g. list item bullet images
+        let repeat = window.getComputedStyle(element).getPropertyValue('background-repeat');
+        return repeat != 'no-repeat' ? url.split('"')[1] : null;
+      } else if (url.match('^[a-z\-]+gradient\\(')) {
+        //todo refactor to not hijack this function
+        //do NOT skip nonrepeated bg for gradients, at least stackoverflow has it nonrepeated
+        let colReg = RegExp('rgba?\\(([0-9]{1,3},? ?){3,4}\\)', 'g');
+        let colors = url.match(colReg);
+        //console.log(colors.length +' '+colors);
+        if (colors.length > 0) {
+          let colorParts = [0, 0, 0];
+          //Compute average color by just averaging all used colors, todo better computation than that
+          colors.map(x => new Color(x).getRGBParts()).forEach(parts => {
+            parts.forEach((val, idx) => {
+              colorParts[idx] += val;
+            });
+          });
+          colorParts.forEach((val, idx) => {
+            colorParts[idx] = val / colors.length;
+          });
+          this.elemBgcols.set(element, new Color(colorParts.join(', ')));
+          //console.log(colorParts);
+        }
+        return null;
+      }
     }
+
   }
 
   findElemBgcols() {
