@@ -32,134 +32,134 @@
 // - some sites are crazy, e.g. wikia sets background via sibling div with absolute position
 
 try {
-  (async() => {
-    let config = new Configurator();
+    (async () => {
+        let config = new Configurator();
 
-    //Hijack this page and show configuration box there
-    if (window.location.href == 'http://example.com/') {
-      config.displayForm();
-      return;
-    }
-
-    //Hacks
-
-    //Wikia - background via sibling div with absolute position and opacity
-    let bgEl = document.getElementById('WikiaPageBackground');
-    if (bgEl) {
-      let newBg = window.getComputedStyle(bgEl).getPropertyValue('background-color');
-      //do not reapply deleted background
-      if(newBg != 'rgba(0, 0, 0, 0)') {
-        let opacity = window.getComputedStyle(bgEl).getPropertyValue('opacity');
-        bgEl.style.background = 'none';
-        bgEl.parentNode.style.background = newBg;
-        bgEl.parentNode.style.opacity = opacity;
-      }
-    }
-
-    //Github - lazy loaded content
-    //from https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
-    var targetNode = document.getElementById('js-pjax-loader-bar');
-    if (targetNode) {
-      let callback = function (mutationsList) {
-        for (let mutation of mutationsList) {
-          if (mutation.attributeName == 'class' && targetNode.className == 'pjax-loader-bar') {
-            restart();
-          }
+        //Hijack this page and show configuration box there
+        if (window.location.href == 'http://example.com/') {
+            config.displayForm();
+            return;
         }
-      };
-      let observer = new MutationObserver(callback);
-      observer.observe(targetNode, {
-        attributes: true
-      });
-    }
 
-    function startAsEvent(action) {
-      window.setTimeout(action, 0);
-    }
+        //Hacks
 
-    //for all text node parent elements under elemContainer starts the callback as an event
-    function forTextElementsUnder(elemContainer, callback) {
-      let node, elems = [],
-        walk = document.createTreeWalker(elemContainer, NodeFilter.SHOW_TEXT, null, false);
-      while (node = walk.nextNode()) {
-        if (node.data.trim() == '') continue;
-        let parent = node.parentNode;
-        if (parent instanceof Element) elems.push(parent);
-      }
-      elems.forEach(el => {
-        startAsEvent(() => {
-          callback(el);
-        });
-      });
-    }
+        //Wikia - background via sibling div with absolute position and opacity
+        let bgEl = document.getElementById('WikiaPageBackground');
+        if (bgEl) {
+            let newBg = window.getComputedStyle(bgEl).getPropertyValue('background-color');
+            //do not reapply deleted background
+            if (newBg != 'rgba(0, 0, 0, 0)') {
+                let opacity = window.getComputedStyle(bgEl).getPropertyValue('opacity');
+                bgEl.style.background = 'none';
+                bgEl.parentNode.style.background = newBg;
+                bgEl.parentNode.style.opacity = opacity;
+            }
+        }
 
-    // The whole thing wrapped so it can be restarted on lazy-loaded content.
-    //todo optimize -  reuse old elem->color maps
-    function restart() {
+        //Github - lazy loaded content
+        //from https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
+        var targetNode = document.getElementById('js-pjax-loader-bar');
+        if (targetNode) {
+            let callback = function (mutationsList) {
+                for (let mutation of mutationsList) {
+                    if (mutation.attributeName == 'class' && targetNode.className == 'pjax-loader-bar') {
+                        restart();
+                    }
+                }
+            };
+            let observer = new MutationObserver(callback);
+            observer.observe(targetNode, {
+                attributes: true
+            });
+        }
 
-      //First pass - convert bg images to colors, pass them to second pass
-      let imageColorFinder = new ImageColorFinder(new ColorThief(), forTextElementsUnder, correctThemAll);
-      imageColorFinder.findElemBgcols();
+        function startAsEvent(action) {
+            window.setTimeout(action, 0);
+        }
 
-      //Second pass - compare and correct colors
-      async function correctThemAll(elemBgcols) {
-        let elemCorrections = [];
-        let elColFinder = new ElementColorFinder(elemBgcols);
-        let desiredContrast = await config.getContrast();
+        //for all text node parent elements under elemContainer starts the callback as an event
+        function forTextElementsUnder(elemContainer, callback) {
+            let node, elems = [],
+                walk = document.createTreeWalker(elemContainer, NodeFilter.SHOW_TEXT, null, false);
+            while (node = walk.nextNode()) {
+                if (node.data.trim() == '') continue;
+                let parent = node.parentNode;
+                if (parent instanceof Element) elems.push(parent);
+            }
+            elems.forEach(el => {
+                startAsEvent(() => {
+                    callback(el);
+                });
+            });
+        }
 
-        forTextElementsUnder(document.body, (element) => {
-          //debug 
-          //console.log(element.tagName);
-          //if(element.getAttribute("ng-controller") != 'gogConnectCtrl as reclaim') return;
-          //if(element.id != 'i016772892474772105') return;
-          //if(!element.textContent.startsWith('You will ')) return;
-          let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
-          if (fw < 400) element.style.setProperty("font-weight", 400, "important");
+        // The whole thing wrapped so it can be restarted on lazy-loaded content.
+        //todo optimize -  reuse old elem->color maps
+        function restart() {
 
-          let cols = elColFinder.computeColors(element, 'color', 'background-color');
-          let col = cols.fgCol;
-          let bgcol = cols.bgCol;
-          //console.log(element.tagName+element.className+element.name+col+bgcol);
-          //console.log(col.brightness() + ' ' + bgcol.brightness());
+            //First pass - convert bg images to colors, pass them to second pass
+            let imageColorFinder = new ImageColorFinder(new ColorThief(), forTextElementsUnder, correctThemAll);
+            imageColorFinder.findElemBgcols();
 
-          col.contrastTo(bgcol, desiredContrast);
-          elemCorrections.push({
-            el: element,
-            prop: "color",
-            col: col.toString()
-          });
-        });
+            //Second pass - compare and correct colors
+            async function correctThemAll(elemBgcols) {
+                let elemCorrections = [];
+                let elColFinder = new ElementColorFinder(elemBgcols);
+                let desiredContrast = await config.getContrast();
 
-        //depends on previous events being finished. Synchronicity should be ensured by JS being single-threaded and running events in received order
-        startAsEvent(async () => {
-          //Write the computed corrections last so they don't afect their computation
-          elemCorrections.forEach((corr) => {
-            corr.el.style.setProperty(corr.prop, corr.col, "important");
-            //console.log(corr.el.tagName+','+corr.prop+','+corr.col);
-          });
-          
-          //Set computed body background color, will only be used for scrollbar background
-          let bodyBg = elemBgcols.get(document.body);
-          if(!bodyBg) {
-            bodyBg = window.getComputedStyle(document.body).getPropertyValue('background-color');
-            if(!bodyBg) bodyBg = 'rgb(120 120 120)';
-            bodyBg = new Color(bodyBg);
-          }
-          document.body.style.backgroundColor = bodyBg.toString();
-          //Set scrollbar color
-          let scrCol = new Color('120 120 120');
-          scrCol.contrastTo(bodyBg, desiredContrast);
-          let htmlStyle = document.getElementsByTagName("HTML")[0].style;
-          htmlStyle.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
-          htmlStyle.scrollbarWidth = await config.getScrollWidth();
-        });
+                forTextElementsUnder(document.body, (element) => {
+                    //debug 
+                    //console.log(element.tagName);
+                    //if(element.getAttribute("ng-controller") != 'gogConnectCtrl as reclaim') return;
+                    //if(element.id != 'i016772892474772105') return;
+                    //if(!element.textContent.startsWith('You will ')) return;
+                    let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
+                    if (fw < 400) element.style.setProperty("font-weight", 400, "important");
 
-      }
-    }
-    restart();
-    
+                    let cols = elColFinder.computeColors(element, 'color', 'background-color');
+                    let col = cols.fgCol;
+                    let bgcol = cols.bgCol;
+                    //console.log(element.tagName+element.className+element.name+col+bgcol);
+                    //console.log(col.brightness() + ' ' + bgcol.brightness());
 
-  })();
+                    col.contrastTo(bgcol, desiredContrast);
+                    elemCorrections.push({
+                        el: element,
+                        prop: "color",
+                        col: col.toString()
+                    });
+                });
+
+                //depends on previous events being finished. Synchronicity should be ensured by JS being single-threaded and running events in received order
+                startAsEvent(async () => {
+                    //Write the computed corrections last so they don't afect their computation
+                    elemCorrections.forEach((corr) => {
+                        corr.el.style.setProperty(corr.prop, corr.col, "important");
+                        //console.log(corr.el.tagName+','+corr.prop+','+corr.col);
+                    });
+
+                    //Set computed body background color, will only be used for scrollbar background
+                    let bodyBg = elemBgcols.get(document.body);
+                    if (!bodyBg) {
+                        bodyBg = window.getComputedStyle(document.body).getPropertyValue('background-color');
+                        if (!bodyBg) bodyBg = 'rgb(120 120 120)';
+                        bodyBg = new Color(bodyBg);
+                    }
+                    document.body.style.backgroundColor = bodyBg.toString();
+                    //Set scrollbar color
+                    let scrCol = new Color('120 120 120');
+                    scrCol.contrastTo(bodyBg, desiredContrast);
+                    let htmlStyle = document.getElementsByTagName("HTML")[0].style;
+                    htmlStyle.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
+                    htmlStyle.scrollbarWidth = await config.getScrollWidth();
+                });
+
+            }
+        }
+        restart();
+
+
+    })();
 } catch (e) {
-  console.error(e);
+    console.error(e);
 }
