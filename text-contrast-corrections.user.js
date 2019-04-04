@@ -4,21 +4,23 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       1.31
+// @version       1.32
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
 // @grant         GM.listValues
 // @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Configurator.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Color.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/ElementColorFinder.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/ImageColorFinder.js
+// @require       http://127.0.0.1:8080/classes/Configurator.js
+// @require       http://127.0.0.1:8080/classes/Color.js
+// @require       http://127.0.0.1:8080/classes/ElementColorFinder.js
+// @require       http://127.0.0.1:8080/classes/Hacks.js
+// @require       http://127.0.0.1:8080/classes/ImageColorFinder.js
 // ==/UserScript==
 
 //Todo:
 //Rerun for lazy-loaded content universally e.g. comments on gog.com
 //Ask for bg image only if nested element needs it. load it async, in callback just rerun for child elements of the image
+//Detect readonly tags like <math> programaticaly
 
 //Assumptions / notes
 // - bgcolor is not computed, has to be guessed from parent elements
@@ -31,6 +33,9 @@
 // - second pass: convert all alpha color to opaque and correct contrast
 // - some sites are crazy, e.g. wikia sets background via sibling div with absolute position
 
+//Some tags' style cannot be modified, experimentaly gathered at a wikipedia page https://en.wikipedia.org/wiki/MathML
+const readOnlyTags = ['mi', 'mo', 'mn', 'mtext', 'mo', 'annotation', 'math'];
+
 try {
     (async () => {
         let config = new Configurator();
@@ -38,40 +43,11 @@ try {
         //Hijack this page and show configuration box there
         if (window.location.href == 'http://example.com/') {
             config.displayForm();
-            return;
         }
 
         //Hacks
-
-        //Wikia - background via sibling div with absolute position and opacity
-        let bgEl = document.getElementById('WikiaPageBackground');
-        if (bgEl) {
-            let newBg = window.getComputedStyle(bgEl).getPropertyValue('background-color');
-            //do not reapply deleted background
-            if (newBg != 'rgba(0, 0, 0, 0)') {
-                let opacity = window.getComputedStyle(bgEl).getPropertyValue('opacity');
-                bgEl.style.background = 'none';
-                bgEl.parentNode.style.background = newBg;
-                bgEl.parentNode.style.opacity = opacity;
-            }
-        }
-
-        //Github - lazy loaded content
-        //from https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
-        var targetNode = document.getElementById('js-pjax-loader-bar');
-        if (targetNode) {
-            let callback = function (mutationsList) {
-                for (let mutation of mutationsList) {
-                    if (mutation.attributeName == 'class' && targetNode.className == 'pjax-loader-bar') {
-                        restart();
-                    }
-                }
-            };
-            let observer = new MutationObserver(callback);
-            observer.observe(targetNode, {
-                attributes: true
-            });
-        }
+        let hacks = new Hacks();
+        hacks.doAllHacks();
 
         function startAsEvent(action) {
             window.setTimeout(action, 0);
@@ -134,8 +110,11 @@ try {
                 startAsEvent(async () => {
                     //Write the computed corrections last so they don't afect their computation
                     elemCorrections.forEach((corr) => {
-                        corr.el.style.setProperty(corr.prop, corr.col, "important");
                         //console.log(corr.el.tagName+','+corr.prop+','+corr.col);
+                        if(readOnlyTags.includes(corr.el.tagName)) {
+                          return;
+                        }
+                        corr.el.style.setProperty(corr.prop, corr.col, "important");
                     });
 
                     //Set computed body background color, will only be used for scrollbar background
