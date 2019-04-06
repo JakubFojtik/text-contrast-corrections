@@ -124,6 +124,7 @@ try {
                         if (!bodyBg) bodyBg = 'rgb(120 120 120)';
                         bodyBg = new Color(bodyBg);
                     }
+                    document.documentElement.style.backgroundColor = bodyBg.toString();
                     document.body.style.backgroundColor = bodyBg.toString();
                     //Set scrollbar color
                     let scrCol = new Color('120 120 120');
