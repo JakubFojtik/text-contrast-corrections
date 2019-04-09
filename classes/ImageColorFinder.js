@@ -25,12 +25,15 @@ class ImageColorFinder {
                 //console.log(colors.length +' '+colors);
                 if (colors.length > 0) {
                     let colorParts = [0, 0, 0];
-                    //Compute average color by just averaging all used colors, todo better computation than that
-                    colors.map(x => new Color(x).getRGBParts()).forEach(parts => {
-                        parts.forEach((val, idx) => {
-                            colorParts[idx] += val;
+                    //Compute average color by just averaging all used opaque colors, todo better computation than that
+                    let opaqueColors = colors.map(x => new Color(x)).filter(x => x.isOpaque());
+                    if (opaqueColors.length == 0) return null;
+                    opaqueColors.map(x => x.getRGBParts())
+                        .forEach(parts => {
+                            parts.forEach((val, idx) => {
+                                colorParts[idx] += val;
+                            });
                         });
-                    });
                     colorParts.forEach((val, idx) => {
                         colorParts[idx] = val / colors.length;
                     });
