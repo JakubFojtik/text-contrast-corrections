@@ -14,25 +14,7 @@ class Configurator {
         this.descriptions.set(DESIRED_CONTRAST_KEY, 'Desired contrast (0.0 to 1.0)');
         this.descriptions.set(SCROLL_WIDTH_KEY, 'Scrollbar width (normal or thin)');
     }
-    async getContrast() {
-        let contrastText = await GM.getValue(DESIRED_CONTRAST_KEY);
-        let contrast = Number(contrastText);
-        //do not simplify range check, would not filter out uncomparable values
-        if (contrastText === '' || contrast == NaN || !(0 <= contrast && contrast <= 1)) {
-            //replace invalid configured value with default
-            contrast = DEFAULT_DESIRED_CONTRAST;
-            await GM.setValue(DESIRED_CONTRAST_KEY, contrast);
-        }
-        return contrast;
-    }
-    async getScrollWidth() {
-        let width = await GM.getValue(SCROLL_WIDTH_KEY);
-        if (!width || !(width == 'normal' || width == 'thin')) {
-            width = DEFAULT_SCROLL_WIDTH;
-            await GM.setValue(SCROLL_WIDTH_KEY, width);
-        }
-        return width;
-    }
+
     async displayForm() {
         let box = document.body;
         // This is one way to remove all children from a node
@@ -75,5 +57,26 @@ class Configurator {
                 await GM.setValue(input.name, input.value);
             });
         });
+    }
+
+    async getContrast() {
+        let contrastText = await GM.getValue(DESIRED_CONTRAST_KEY);
+        let contrast = Number(contrastText);
+        //do not simplify range check, would not filter out uncomparable values
+        if (contrastText === '' || contrast == NaN || !(0 <= contrast && contrast <= 1)) {
+            //replace invalid configured value with default
+            contrast = DEFAULT_DESIRED_CONTRAST;
+            await GM.setValue(DESIRED_CONTRAST_KEY, contrast);
+        }
+        return contrast;
+    }
+
+    async getScrollWidth() {
+        let width = await GM.getValue(SCROLL_WIDTH_KEY);
+        if (!width || !(width == 'normal' || width == 'thin')) {
+            width = DEFAULT_SCROLL_WIDTH;
+            await GM.setValue(SCROLL_WIDTH_KEY, width);
+        }
+        return width;
     }
 }

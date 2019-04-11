@@ -7,8 +7,20 @@ class ElementColorFinder {
         this.nullElement = document.createElement("div");
     }
 
-    getBgColor(el, bgProp) {
-        return this.elemBgcol.has(el) ? this.elemBgcol.get(el) : new Color(window.getComputedStyle(el).getPropertyValue(bgProp));
+    computeColors(element, fgProp, bgProp) {
+        let bgColor = this.findAndMergeBgCol(element, bgProp);
+
+        //Now we can compute fg color even if it has alpha
+        let col = new Color(window.getComputedStyle(element).getPropertyValue(fgProp));
+        //console.log(element.tagName+element.className+element.name+col+bgColor);
+
+        let fgColor = col.asOpaque(bgColor);
+        //console.log(element.tagName+element.className+element.name+fgColor+bgColor);
+
+        return {
+            fgCol: fgColor,
+            bgCol: bgColor
+        };
     }
 
     findAndMergeBgCol(element, bgProp) {
@@ -53,19 +65,7 @@ class ElementColorFinder {
         return col;
     }
 
-    computeColors(element, fgProp, bgProp) {
-        let bgColor = this.findAndMergeBgCol(element, bgProp);
-
-        //Now we can compute fg color even if it has alpha
-        let col = new Color(window.getComputedStyle(element).getPropertyValue(fgProp));
-        //console.log(element.tagName+element.className+element.name+col+bgColor);
-
-        let fgColor = col.asOpaque(bgColor);
-        //console.log(element.tagName+element.className+element.name+fgColor+bgColor);
-
-        return {
-            fgCol: fgColor,
-            bgCol: bgColor
-        };
+    getBgColor(el, bgProp) {
+        return this.elemBgcol.has(el) ? this.elemBgcol.get(el) : new Color(window.getComputedStyle(el).getPropertyValue(bgProp));
     }
 }
