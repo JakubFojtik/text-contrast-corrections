@@ -1,19 +1,30 @@
 <html>
 <style type="text/css">
 div {
-  width: 50%;
-  height: 50%;
+  width: 40%;
+  height: 30%;
   margin: 15px;
 }
 #a {
   background-color: lightblue;
+  width: 70%;
 }
 #b {
   background-color: rgba(0,0,0,0.8);
   color: navy;
 }
 #c {
-  color: white;
+  clear: both;
+}
+#e {
+  float: left;
+  background-color: white;
+  background-image: url("http://127.0.0.1:8080/tests/circles.png");
+}
+#f {
+  float: left;
+  background-color: black;
+  background-image: url("http://127.0.0.1:8080/tests/circles.png");
 }
 </style>
 <head>
@@ -21,9 +32,15 @@ div {
 <body>
 <div id='a'>
 <div id='b'>
-text text text
-<div id='c'>text above should be clearly visible with script enabled</div>
+text1 text1 text1
 </div>
+<div id='e'>
+text2 text2 text2 text2 text2 text2
+</div>
+<div id='f'>
+text2 text2 text2 text2 text2 text2 
+</div>
+<div id='c'>text above should be clearly visible with script enabled</div>
 </div>
 </body>
 </html>

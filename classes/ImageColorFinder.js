@@ -26,7 +26,7 @@ class ImageColorFinder {
             if (!(el instanceof Element)) return;
             element = el;
 
-            if (url) getBgImageColor(url);
+            if (url) this.getBgImageColor(element, url);
         });
 
         //Wait for images to load
@@ -47,7 +47,7 @@ class ImageColorFinder {
         }, 5000);
     }
 
-    getBgImageColor(url) {
+    getBgImageColor(element, url) {
         this.imgCounter++;
 
         //copypaste of ColorThief.prototype.getColorFromUrl. Load events are sometimes not fired for image that already loaded e.g. <body> background image.
@@ -55,11 +55,11 @@ class ImageColorFinder {
         let sourceImage = document.createElement("img");
         sourceImage.addEventListener('load', () => {
             let bgColor = window.getComputedStyle(element).getPropertyValue('background-color');
-            let palette = this.colorThief.getPalette(sourceImage, 10);
+            let bgColorParts = new Color(bgColor).getRGBParts();
+            let palette = this.colorThief.getPalette(sourceImage, 10, 10, false, bgColorParts);
             //palette can be null for transparent images
             if (palette != null) {
                 let dominantColor = palette[0];
-
                 let avgColor = palette.reduce((a, b) => {
                     return a.map((x, idx) => {
                         return (x + b[idx]) / 2;
@@ -73,7 +73,6 @@ class ImageColorFinder {
             }
 
             this.elemBgcols.set(element, new Color(bgColor));
-            //element.style.setProperty("background-color", new Color(dominantColor.join(',')).toString(), "important");
             this.imgCounter--;
         });
         sourceImage.addEventListener('error', () => {
@@ -85,7 +84,7 @@ class ImageColorFinder {
             this.imgCounter--;
         });
         this.elemBgcols.set(element, null);
-        sourceImage.src = url
+        sourceImage.src = url;
     }
 
     getBgImageUrl(element) {

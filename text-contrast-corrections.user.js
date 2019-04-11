@@ -117,11 +117,11 @@ try {
                         corr.el.style.setProperty(corr.prop, corr.col, "important");
                     });
 
-                    //Set computed body background color, will only be used for scrollbar background
+                    //Set computed body background color, will only be used for scrollbar background, bgimages are not used in firefox.
                     let bodyBg = elemBgcols.get(document.body);
                     if (!bodyBg) {
-                        bodyBg = window.getComputedStyle(document.body).getPropertyValue('background-color');
-                        if (!bodyBg) bodyBg = 'rgb(120 120 120)';
+                        bodyBg = new Color(window.getComputedStyle(document.body).getPropertyValue('background-color'));
+                        if (!bodyBg || !bodyBg.isOpaque()) bodyBg = 'rgb(120 120 120)';
                         bodyBg = new Color(bodyBg);
                     }
                     document.documentElement.style.backgroundColor = bodyBg.toString();

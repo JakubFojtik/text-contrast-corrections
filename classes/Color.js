@@ -49,7 +49,7 @@ class Color {
     }
     brightness() {
         if (!this.isOpaque()) {
-            console.error('getting brightness of alpha color');
+            console.error('getting brightness of alpha color ' + this.parts);
             return -1;
         }
         let coefs = this.colorPartsBrightness();
