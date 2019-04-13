@@ -93,7 +93,8 @@ class ImageColorFinder {
             if (url.startsWith('url("')) {
                 //skip nonrepeated bg in case of e.g. list item bullet images
                 let repeat = window.getComputedStyle(element).getPropertyValue('background-repeat');
-                return repeat != 'no-repeat' ? url.split('"')[1] : null;
+                let size = window.getComputedStyle(element).getPropertyValue('background-size');
+                return (repeat != 'no-repeat' || size == 'cover') ? url.split('"')[1] : null;
             } else if (url.match('^[a-z\-]+gradient\\(')) {
                 return this.getGradientColor(url);
             }
