@@ -1,5 +1,8 @@
 // Computes the dominant image color
 
+//How many pixels to skip when determining image color pallete. From 1 to 10.
+const COLOR_THIEVING_COARSENESS = 10;
+
 class ImageColorFinder {
     constructor(colorThief, textElementsUnder, callback) {
         //Background colors of elements. Needs converted colors of background images, otherwise they will be ignored in computations
@@ -56,7 +59,8 @@ class ImageColorFinder {
         sourceImage.addEventListener('load', () => {
             let bgColor = window.getComputedStyle(element).getPropertyValue('background-color');
             let bgColorParts = new Color(bgColor).getRGBParts();
-            let palette = this.colorThief.getPalette(sourceImage, 10, 10, false, bgColorParts);
+            let colorCount = 10;
+            let palette = this.colorThief.getPalette(sourceImage, colorCount, COLOR_THIEVING_COARSENESS, false, bgColorParts);
             //palette can be null for transparent images
             if (palette != null) {
                 let dominantColor = palette[0];
@@ -66,9 +70,10 @@ class ImageColorFinder {
                     });
                 });
                 //Add some weight to the dominant color. Maybe pallete returns colors in descending dominance?
-                dominantColor = dominantColor.map((x, idx) => {
-                    return 0.8 * x + 0.2 * avgColor[idx];
-                });
+              	//todo: need percentages too, otherwise a sky with stars is not considered mostly black but gray
+                //dominantColor = dominantColor.map((x, idx) => {
+                //    return 0.8 * x + 0.2 * avgColor[idx];
+                //});
                 bgColor = dominantColor.join(',');
             }
 
