@@ -99,7 +99,7 @@ try {
                     let cols = elColFinder.computeColors(element, 'color', 'background-color');
                     let col = cols.fgCol;
                     let bgcol = cols.bgCol;
-                    console.log(element.tagName+element.className+element.name+col+bgcol);
+                    //console.log(element.tagName+element.className+element.name+col+bgcol);
                     //console.log(col.brightness() + ' ' + bgcol.brightness());
 
                     col.contrastTo(bgcol, desiredContrast);
