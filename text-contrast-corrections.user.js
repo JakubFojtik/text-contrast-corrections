@@ -10,11 +10,11 @@
 // @grant         GM.setValue
 // @grant         GM.listValues
 // @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
-// @require       http://127.0.0.1:8080/classes/Configurator.js
-// @require       http://127.0.0.1:8080/classes/Color.js
-// @require       http://127.0.0.1:8080/classes/ElementColorFinder.js
-// @require       http://127.0.0.1:8080/classes/Hacks.js
-// @require       http://127.0.0.1:8080/classes/ImageColorFinder.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Configurator.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Color.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/ElementColorFinder.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Hacks.js
+// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/ImageColorFinder.js
 // ==/UserScript==
 
 //Todo:
