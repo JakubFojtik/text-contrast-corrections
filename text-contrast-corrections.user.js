@@ -10,11 +10,11 @@
 // @grant         GM.setValue
 // @grant         GM.listValues
 // @require       https://raw.githubusercontent.com/JakubFojtik/color-thief/master/src/color-thief.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Configurator.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Color.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/ElementColorFinder.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Hacks.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/ImageColorFinder.js
+// @require       http://127.0.0.1:8080/classes/Configurator.js
+// @require       http://127.0.0.1:8080/classes/Color.js
+// @require       http://127.0.0.1:8080/classes/ElementColorFinder.js
+// @require       http://127.0.0.1:8080/classes/Hacks.js
+// @require       http://127.0.0.1:8080/classes/ImageColorFinder.js
 // ==/UserScript==
 
 //Todo:
@@ -74,7 +74,7 @@ try {
         function restart() {
 
             //First pass - convert bg images to colors, pass them to second pass
-            let imageColorFinder = new ImageColorFinder(new ColorThief(), forTextElementsUnder, correctThemAll);
+            let imageColorFinder = new ImageColorFinder(forTextElementsUnder, correctThemAll);
             imageColorFinder.findElemBgcols();
 
             //Second pass - compare and correct colors
@@ -82,6 +82,8 @@ try {
                 let elemCorrections = [];
                 let elColFinder = new ElementColorFinder(elemBgcols);
                 let desiredContrast = await config.getContrast();
+              
+                //let anch = document.getElementsByTagName("A").filter(x=>x.href='#dubbed')[0];
 
                 forTextElementsUnder(document.body, (element) => {
                     //debug 
@@ -89,13 +91,15 @@ try {
                     //if(element.getAttribute("ng-controller") != 'gogConnectCtrl as reclaim') return;
                     //if(element.id != 'i016772892474772105') return;
                     //if(!element.textContent.startsWith('You will ')) return;
+                    //if(element.tagName!='h1') return;
+                    //if(element != anch) return;
                     let fw = window.getComputedStyle(element).getPropertyValue('font-weight');
                     if (fw < 400) element.style.setProperty("font-weight", 400, "important");
 
                     let cols = elColFinder.computeColors(element, 'color', 'background-color');
                     let col = cols.fgCol;
                     let bgcol = cols.bgCol;
-                    //console.log(element.tagName+element.className+element.name+col+bgcol);
+                    console.log(element.tagName+element.className+element.name+col+bgcol);
                     //console.log(col.brightness() + ' ' + bgcol.brightness());
 
                     col.contrastTo(bgcol, desiredContrast);

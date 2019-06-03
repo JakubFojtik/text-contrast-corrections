@@ -1,14 +1,14 @@
 // Computes the dominant image color
 
-//How many pixels to skip when determining image color pallete. From 1 to 10.
-const COLOR_THIEVING_COARSENESS = 10;
+//How many pixels of 10 to consider when determining image color pallete. From 1 to 10.
+const COLOR_THIEVING_QUALITY = 10;
+const MAX_COLOR_THIEVING_QUALITY = 10;
 
 class ImageColorFinder {
-    constructor(colorThief, textElementsUnder, callback) {
+    constructor(textElementsUnder, callback) {
         //Background colors of elements. Needs converted colors of background images, otherwise they will be ignored in computations
         this.elemBgcols = new Map();
         this.urlDownloads = new Map();
-        this.colorThief = colorThief;
         this.imgCounter = 0;
         this.textElementsUnder = textElementsUnder;
         this.callback = callback;
@@ -51,34 +51,18 @@ class ImageColorFinder {
         this.imgCounter++;
 
         //copypaste of ColorThief.prototype.getColorFromUrl. Load events are sometimes not fired for image that already loaded e.g. <body> background image.
-        //ColorThief seemingly ignores transparent pixels, but not white pixels anymore
         let sourceImage = document.createElement("img");
         let prom = new Promise((res, rej) => {
             sourceImage.addEventListener('load', () => {
                 let bgColor = window.getComputedStyle(element).getPropertyValue('background-color');
                 let bgColorParts = new Color(bgColor).getRGBParts();
-                let colorCount = 10;
-                let palette = this.colorThief.getPalette(sourceImage, colorCount, COLOR_THIEVING_COARSENESS, false, bgColorParts);
-                //palette can be null for transparent images
-                if (palette != null) {
-                    let dominantColor = palette[0];
-                    let avgColor = palette.reduce((a, b) => {
-                        return a.map((x, idx) => {
-                            return (x + b[idx]) / 2;
-                        });
-                    });
-                    //Add some weight to the dominant color. Maybe pallete returns colors in descending dominance?
-                    //todo: need percentages too, otherwise a sky with stars is not considered mostly black but gray
-                    //dominantColor = dominantColor.map((x, idx) => {
-                    //    return 0.8 * x + 0.2 * avgColor[idx];
-                    //});
-                    bgColor = dominantColor.join(',');
-                }
+                let color = this.extractColor(sourceImage, COLOR_THIEVING_QUALITY, false, bgColorParts);
+                bgColor = color.join(',');
 
                 this.elemBgcols.set(element, new Color(bgColor));
                 this.imgCounter--;
                 res();
-                console.log(url);
+                //console.log(bgColor+url);
             });
             sourceImage.addEventListener('error', () => {
                 console.error('error');
@@ -106,12 +90,12 @@ class ImageColorFinder {
                 let size = window.getComputedStyle(element).getPropertyValue('background-size');
                 return (repeat != 'no-repeat' || size == 'cover') ? url.split('"')[1] : null;
             } else if (url.match('^[a-z\-]+gradient\\(')) {
-                return this.getGradientColor(url);
+                return this.getGradientColor(element, url);
             }
         }
     }
 
-    getGradientColor(url) {
+    getGradientColor(element, url) {
         //do NOT skip nonrepeated bg for gradients, at least stackoverflow has it nonrepeated
         let colReg = RegExp('rgba?\\(([0-9]{1,3},? ?){3,4}\\)', 'g');
         let colors = url.match(colReg);
@@ -128,10 +112,10 @@ class ImageColorFinder {
                     });
                 });
             colorParts.forEach((val, idx) => {
-                colorParts[idx] = val / colors.length;
+                colorParts[idx] = Math.round(val / colors.length);
             });
             this.elemBgcols.set(element, new Color(colorParts.join(', ')));
-            //console.log(colorParts);
+            //console.log(colorParts+url);
         }
         return null;
     }
@@ -146,4 +130,60 @@ class ImageColorFinder {
         });
         this.callback(this.elemBgcols);
     }
+  
+    extractColor(sourceImage, quality, ignoreBgcolor, bgColor) {
+
+      if (typeof quality === 'undefined' || quality < 1 || quality > MAX_COLOR_THIEVING_QUALITY) {
+        quality = 5;
+      }
+      if (typeof ignoreBgcolor === 'undefined') {
+        ignoreBgcolor = true;
+      }
+      if (typeof bgColor === 'undefined' || bgColor.length < 3) {
+        bgColor = [255, 255, 255];
+      }
+
+      // Create custom CanvasImage object
+      var image      = new CanvasImage(sourceImage);
+      var imageData  = image.getImageData();
+      var pixels     = imageData.data;
+      var pixelCount = image.getPixelCount();
+
+      // Store the RGB values in an array
+      var pixelArray = [];
+      for (var i = 0, offset, r, g, b, a; i < pixelCount; i += MAX_COLOR_THIEVING_QUALITY - quality + 1) {
+        offset = i * 4;
+        r = pixels[offset + 0];
+        g = pixels[offset + 1];
+        b = pixels[offset + 2];
+        a = pixels[offset + 3] / 255;
+        let color = [r, g, b];
+        if(a < 0.99) {
+          // Blend bgColor with transparent pixels
+          color = color.map((x, idx) => {
+            return a*x + (1-a)*bgColor[idx];
+          });
+        }
+
+        // If pixel is not of bgColor or we don't care
+        if (!ignoreBgcolor || color.filter((x, idx) => Math.abs(x - bgColor[idx]) < 5).length < 3) {
+          pixelArray.push(color);
+        }
+      }
+
+      // Send array to quantize function which clusters values
+      // using median cut algorithm
+      //var cmap    = MMCQ.quantize(pixelArray, colorCount);
+      //var palette = cmap? cmap.palette() : null;
+
+      // Average all collected pixel colors
+      let color = pixelArray
+        .reduce((acc, col)=>acc.map((part, i)=>part+col[i]))
+        .map(x=>Math.round(x/pixelArray.length));
+
+      // Clean up
+      image.removeCanvas();
+
+      return color;
+    };
 }
