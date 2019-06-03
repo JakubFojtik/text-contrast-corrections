@@ -7,6 +7,7 @@ class ImageColorFinder {
     constructor(colorThief, textElementsUnder, callback) {
         //Background colors of elements. Needs converted colors of background images, otherwise they will be ignored in computations
         this.elemBgcols = new Map();
+        this.urlDownloads = new Map();
         this.colorThief = colorThief;
         this.imgCounter = 0;
         this.textElementsUnder = textElementsUnder;
@@ -23,13 +24,9 @@ class ImageColorFinder {
             while (el instanceof Element) {
                 if (this.elemBgcols.has(el)) return;
                 url = this.getBgImageUrl(el);
-                if (url) break;
-                else el = el.parentNode;
+                if (url && !this.urlDownloads.has(url)) this.getBgImageColor(el, url);
+                el = el.parentNode;
             }
-            if (!(el instanceof Element)) return;
-            element = el;
-
-            if (url) this.getBgImageColor(element, url);
         });
 
         //Wait for images to load
@@ -56,39 +53,46 @@ class ImageColorFinder {
         //copypaste of ColorThief.prototype.getColorFromUrl. Load events are sometimes not fired for image that already loaded e.g. <body> background image.
         //ColorThief seemingly ignores transparent pixels, but not white pixels anymore
         let sourceImage = document.createElement("img");
-        sourceImage.addEventListener('load', () => {
-            let bgColor = window.getComputedStyle(element).getPropertyValue('background-color');
-            let bgColorParts = new Color(bgColor).getRGBParts();
-            let colorCount = 10;
-            let palette = this.colorThief.getPalette(sourceImage, colorCount, COLOR_THIEVING_COARSENESS, false, bgColorParts);
-            //palette can be null for transparent images
-            if (palette != null) {
-                let dominantColor = palette[0];
-                let avgColor = palette.reduce((a, b) => {
-                    return a.map((x, idx) => {
-                        return (x + b[idx]) / 2;
+        let prom = new Promise((res, rej) => {
+            sourceImage.addEventListener('load', () => {
+                let bgColor = window.getComputedStyle(element).getPropertyValue('background-color');
+                let bgColorParts = new Color(bgColor).getRGBParts();
+                let colorCount = 10;
+                let palette = this.colorThief.getPalette(sourceImage, colorCount, COLOR_THIEVING_COARSENESS, false, bgColorParts);
+                //palette can be null for transparent images
+                if (palette != null) {
+                    let dominantColor = palette[0];
+                    let avgColor = palette.reduce((a, b) => {
+                        return a.map((x, idx) => {
+                            return (x + b[idx]) / 2;
+                        });
                     });
-                });
-                //Add some weight to the dominant color. Maybe pallete returns colors in descending dominance?
-              	//todo: need percentages too, otherwise a sky with stars is not considered mostly black but gray
-                //dominantColor = dominantColor.map((x, idx) => {
-                //    return 0.8 * x + 0.2 * avgColor[idx];
-                //});
-                bgColor = dominantColor.join(',');
-            }
+                    //Add some weight to the dominant color. Maybe pallete returns colors in descending dominance?
+                    //todo: need percentages too, otherwise a sky with stars is not considered mostly black but gray
+                    //dominantColor = dominantColor.map((x, idx) => {
+                    //    return 0.8 * x + 0.2 * avgColor[idx];
+                    //});
+                    bgColor = dominantColor.join(',');
+                }
 
-            this.elemBgcols.set(element, new Color(bgColor));
-            this.imgCounter--;
-        });
-        sourceImage.addEventListener('error', () => {
-            console.error('error');
-            this.imgCounter--;
-        });
-        sourceImage.addEventListener('abort', () => {
-            console.error('abort');
-            this.imgCounter--;
+                this.elemBgcols.set(element, new Color(bgColor));
+                this.imgCounter--;
+                res();
+                console.log(url);
+            });
+            sourceImage.addEventListener('error', () => {
+                console.error('error');
+                this.imgCounter--;
+                rej();
+            });
+            sourceImage.addEventListener('abort', () => {
+                console.error('abort');
+                this.imgCounter--;
+                rej();
+            });
         });
         this.elemBgcols.set(element, null);
+        this.urlDownloads.set(url, prom);
         sourceImage.src = url;
     }
 
@@ -97,6 +101,7 @@ class ImageColorFinder {
         if (url && url != 'none') {
             if (url.startsWith('url("')) {
                 //skip nonrepeated bg in case of e.g. list item bullet images
+                //todo after downloading check image dimensions against element size
                 let repeat = window.getComputedStyle(element).getPropertyValue('background-repeat');
                 let size = window.getComputedStyle(element).getPropertyValue('background-size');
                 return (repeat != 'no-repeat' || size == 'cover') ? url.split('"')[1] : null;
