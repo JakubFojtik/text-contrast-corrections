@@ -25,10 +25,10 @@ So you can set ratio of 1 (100%) to make all text black (or white on dark backgr
 
 # Todos
 
-//Rerun for lazy-loaded content universally e.g. github without hack
-//Some readonly tags like <math> cannot have their style modified, experimentaly gathered at a wikipedia page https://en.wikipedia.org/wiki/MathML , detect programaticaly
-//proper credits for used programs with licenses
-//Detect if element background is just an underline or a list item bullet e.g. linear-gradient(90deg,currentColor,currentColor)
-//for images, decide if they are big enough for each element, not globaly for image, e.g. list item bullet in case first list is not displayed and has different bgcolor
-//consider sprite map bg image, will be bigger than displayed portion, colors will be wrong
-//match url like gradient, match exactly with braces in case of multiple bgimgs, compute gradient avg color properly
+- Rerun for lazy-loaded content universally e.g. github without hack
+- Some readonly tags like <math> cannot have their style modified, experimentaly gathered at a wikipedia page https:- en.wikipedia.org/wiki/MathML , detect programaticaly
+- proper credits for used programs with licenses
+- Detect if element background is just an underline or a list item bullet e.g. linear-gradient(90deg,currentColor,currentColor)
+- for images, decide if they are big enough for each element, not globaly for image, e.g. list item bullet in case first list is not displayed and has different bgcolor
+- consider sprite map bg image, will be bigger than displayed portion, colors will be wrong
+- match url like gradient, match exactly with braces in case of multiple bgimgs, compute gradient avg color properly
