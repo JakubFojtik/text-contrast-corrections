@@ -1,7 +1,7 @@
 // Computes the dominant image color
 
 //How many pixels of 10 to consider when determining image color pallete. From 1 to 10.
-const COLOR_THIEVING_QUALITY = 10;
+const COLOR_THIEVING_QUALITY = 5;
 const MAX_COLOR_THIEVING_QUALITY = 10;
 
 class ImageColorFinder {
@@ -14,88 +14,49 @@ class ImageColorFinder {
         this.callback = callback;
     }
 
-    findElemBgcols() {
-        this.imgCounter = 0;
-        this.textElementsUnder(document, (element) => {
-            let el = element;
-            let url = '';
-
-            //search for first ancestor that has a bgimage. Possibly stop on first with opaque bgcol, but still take its bgimage if any.
-            while (el instanceof Element) {
-                if (this.elemBgcols.has(el)) return;
-                url = this.getBgImageUrl(el);
-                if (url && !this.urlDownloads.has(url)) this.getBgImageColor(el, url);
-                el = el.parentNode;
-            }
-        });
-
-        //Wait for images to load
-        let int = window.setInterval(() => {
-            //console.log('imgCounterin '+this.imgCounter);
-            if (this.imgCounter != 0) return;
-            else window.clearInterval(int);
-            this.finish();
-        }, 200);
-
-        //Stop witing after fixed time
-        window.setTimeout(() => {
-            if (this.imgCounter != 0) {
-                console.error('some images didnt load');
-                window.clearInterval(int);
-                this.finish();
-            }
-        }, 5000);
+    tryGetBgColor(element) {
+        let bgColor = window.getComputedStyle(element).getPropertyValue('background-color');
+        return new Color(bgColor);
     }
 
-    getBgImageColor(element, url) {
-        this.imgCounter++;
+    async tryGetBgImgColor(element) {
+        let url = this.tryGetBgImgUrl(element);
+        if (url == null) return null;
 
-        //copypaste of ColorThief.prototype.getColorFromUrl. Load events are sometimes not fired for image that already loaded e.g. <body> background image.
-        let sourceImage = document.createElement("img");
-        let prom = new Promise((res, rej) => {
-            sourceImage.addEventListener('load', () => {
-                let bgColor = window.getComputedStyle(element).getPropertyValue('background-color');
-                let bgColorParts = new Color(bgColor).getRGBParts();
-                let color = this.extractColor(sourceImage, COLOR_THIEVING_QUALITY, false, bgColorParts);
-                bgColor = color.join(',');
-
-                this.elemBgcols.set(element, new Color(bgColor));
-                this.imgCounter--;
-                res();
-                //console.log(bgColor+url);
-            });
-            sourceImage.addEventListener('error', () => {
-                console.error('error');
-                this.imgCounter--;
-                rej();
-            });
-            sourceImage.addEventListener('abort', () => {
-                console.error('abort');
-                this.imgCounter--;
-                rej();
-            });
-        });
-        this.elemBgcols.set(element, null);
-        this.urlDownloads.set(url, prom);
-        sourceImage.src = url;
+        if (url) {
+            if (!this.urlDownloads.has(url))
+                this.getBgImageColor(element, url);
+            return await this.urlDownloads.get(url);
+        } else console.error('did not get image col for ' + url);
     }
 
-    getBgImageUrl(element) {
-        let url = window.getComputedStyle(element).getPropertyValue('background-image');
-        if (url && url != 'none') {
-            if (url.startsWith('url("')) {
-                //skip nonrepeated bg in case of e.g. list item bullet images
-                //todo after downloading check image dimensions against element size
-                let repeat = window.getComputedStyle(element).getPropertyValue('background-repeat');
-                let size = window.getComputedStyle(element).getPropertyValue('background-size');
-                return (repeat != 'no-repeat' || size == 'cover') ? url.split('"')[1] : null;
-            } else if (url.match('^[a-z\-]+gradient\\(')) {
-                return this.getGradientColor(element, url);
-            }
+    //todo searchUrl(forWhat), use in gradient too
+    tryGetBgImgUrl(element) {
+        let bgSpec = window.getComputedStyle(element).getPropertyValue('background-image');
+        let regex = /url\("[^"]*"\)/g;  //todo handle all matches, e.g. transparent images over eachother
+        let url = bgSpec.match(regex);
+        if (url && url.length > 0 && url[0].startsWith('url("')) {
+            return url[0].split('"')[1];
+        } else {
+            return null;
         }
     }
 
-    getGradientColor(element, url) {
+    tryGetGradientColor(element) {
+        let bgSpec = window.getComputedStyle(element).getPropertyValue('background-image');
+
+        if (bgSpec) {
+            let matches = bgSpec.match(/^[a-z\-]+gradient\(.*/g); //needs cf parsing for nested parens, includes following gradients
+            if (matches && matches.length > 0) {
+                console.log('mam' + matches[0]);
+                return this.tryGetGradientColorImpl(element, matches[0]);
+            }
+        }
+
+        return null;
+    }
+
+    tryGetGradientColorImpl(element, url) {
         //do NOT skip nonrepeated bg for gradients, at least stackoverflow has it nonrepeated
         let colReg = RegExp('rgba?\\(([0-9]{1,3},? ?){3,4}\\)', 'g');
         let colors = url.match(colReg);
@@ -116,74 +77,161 @@ class ImageColorFinder {
             });
             this.elemBgcols.set(element, new Color(colorParts.join(', ')));
             //console.log(colorParts+url);
+            return new Color(colorParts.join(', '));
         }
         return null;
     }
 
-    finish() {
-        this.elemBgcols.forEach((val, key, map) => {
-            if (!val) {
-                map.delete(key);
-                let url = window.getComputedStyle(key).getPropertyValue('background-image');
-                console.log('is null ' + url);
-            }
+    getBgImageColor(element, url) {
+        this.imgCounter++;
+        let sourceImage = document.createElement("img");
+        let prom = new Promise((res, rej) => {
+            sourceImage.addEventListener('load', () => {
+                var image = new CanvasImage(sourceImage);
+                try {
+                    if (!this.doesImageCoverElem(element, image, url)) {
+                        res(null);
+                        return null;
+                    }
+                    let color = this.extractColor(image, COLOR_THIEVING_QUALITY);
+
+                    this.elemBgcols.set(element, color);
+                    this.imgCounter--;
+                    res(color);
+                } finally {
+                    image.removeCanvas();
+                }
+                //console.log(color + url);
+            });
+            sourceImage.addEventListener('error', () => {
+                console.error('error ' + url);
+                this.imgCounter--;
+                res(null);
+            });
+            sourceImage.addEventListener('abort', () => {
+                console.error('abort ' + url);
+                this.imgCounter--;
+                res(null);
+            });
         });
-        this.callback(this.elemBgcols);
+        this.elemBgcols.set(element, null);
+        this.urlDownloads.set(url, prom);
+        sourceImage.src = url;
     }
-  
-    extractColor(sourceImage, quality, ignoreBgcolor, bgColor) {
 
-      if (typeof quality === 'undefined' || quality < 1 || quality > MAX_COLOR_THIEVING_QUALITY) {
-        quality = 5;
-      }
-      if (typeof ignoreBgcolor === 'undefined') {
-        ignoreBgcolor = true;
-      }
-      if (typeof bgColor === 'undefined' || bgColor.length < 3) {
-        bgColor = [255, 255, 255];
-      }
+    doesImageCoverElem(element, image, url) {
+        //todo multiple background images and their sizes https://developer.mozilla.org/en-US/docs/Web/CSS/background-size#Syntax
+        //todo sprite image - different part used at different places, cannot compute color from whole
+        console.log(image.width + " " + image.height + " " + url);
 
-      // Create custom CanvasImage object
-      var image      = new CanvasImage(sourceImage);
-      var imageData  = image.getImageData();
-      var pixels     = imageData.data;
-      var pixelCount = image.getPixelCount();
+        //is repeat enough? ifnot is size enough?
+        let bgSize = window.getComputedStyle(element).getPropertyValue('background-size');
+        console.log('toz' + window.Length.toPx(element, '1em'));
+        let bgRepeat = window.getComputedStyle(element).getPropertyValue('background-repeat');
+        let bgRepeatX = bgRepeat,
+            bgRepeatY = bgRepeat;
+        let bgRepeatParts = bgRepeat.split(' ');
+        if (bgRepeatParts.length > 1) {
+            bgRepeatX = bgRepeatParts[0];
+            bgRepeatY = bgRepeatParts[1];
+        } else {
+            if (bgRepeat == 'repeat-x') bgRepeatY = 'no-repeat';
+            if (bgRepeat == 'repeat-y') bgRepeatX = 'no-repeat';
+        }
+        bgRepeatX = bgRepeatX != 'no-repeat';
+        bgRepeatY = bgRepeatY != 'no-repeat';
+        let elemWidth = element.clientWidth;
+        let elemHeight = element.clientHeight;
+        console.log(url + element.tagName + element.getBoundingClientRect().width);
+        console.log(bgRepeatX, image.width, elemWidth);
+        console.log(bgRepeatY, image.height, elemHeight);
+        if (bgSize == 'cover') return true;
 
-      // Store the RGB values in an array
-      var pixelArray = [];
-      for (var i = 0, offset, r, g, b, a; i < pixelCount; i += MAX_COLOR_THIEVING_QUALITY - quality + 1) {
-        offset = i * 4;
-        r = pixels[offset + 0];
-        g = pixels[offset + 1];
-        b = pixels[offset + 2];
-        a = pixels[offset + 3] / 255;
-        let color = [r, g, b];
-        if(a < 0.99) {
-          // Blend bgColor with transparent pixels
-          color = color.map((x, idx) => {
-            return a*x + (1-a)*bgColor[idx];
-          });
+        //image size * bg size = covered size
+        //todo include bg size
+        if (!bgRepeatX && (image.width < elemWidth / 2)) return false;
+        if (!bgRepeatY && (image.height < elemHeight / 2)) return false;
+
+        return true;
+    }
+
+    extractColor(image, quality) {
+
+        if (typeof quality === 'undefined' || quality < 1 || quality > MAX_COLOR_THIEVING_QUALITY) {
+            quality = 5;
         }
 
-        // If pixel is not of bgColor or we don't care
-        if (!ignoreBgcolor || color.filter((x, idx) => Math.abs(x - bgColor[idx]) < 5).length < 3) {
-          pixelArray.push(color);
+        // Create custom CanvasImage object
+        var imageData = image.getImageData();
+        var pixels = imageData.data;
+        var pixelCount = image.getPixelCount();
+
+        // Store the RGB values in an array
+        var pixelArray = [];
+        for (var i = 0, offset, r, g, b, a; i < pixelCount; i += MAX_COLOR_THIEVING_QUALITY - quality + 1) {
+            offset = i * 4;
+            r = pixels[offset + 0];
+            g = pixels[offset + 1];
+            b = pixels[offset + 2];
+            a = pixels[offset + 3]; //keep alpha 0-255 so all parts can be rounded to int
+            let color = [r, g, b, a];
+
+            pixelArray.push(color);
         }
-      }
 
-      // Send array to quantize function which clusters values
-      // using median cut algorithm
-      //var cmap    = MMCQ.quantize(pixelArray, colorCount);
-      //var palette = cmap? cmap.palette() : null;
+        // Send array to quantize function which clusters values
+        // using median cut algorithm
+        //var cmap    = MMCQ.quantize(pixelArray, colorCount);
+        //var palette = cmap? cmap.palette() : null;
+        //console.log(pixelArray);
 
-      // Average all collected pixel colors
-      let color = pixelArray
-        .reduce((acc, col)=>acc.map((part, i)=>part+col[i]))
-        .map(x=>Math.round(x/pixelArray.length));
+        // Average all collected pixel colors
+        let color = pixelArray
+            .reduce((acc, col) => acc.map((part, i) => part + col[i]));
+        //console.log('inimg ' + color);
+        color = color.map(x => Math.round(x / pixelArray.length));
+        color[3] /= 255;
+        //console.log('postimg ' + color);
 
-      // Clean up
-      image.removeCanvas();
-
-      return color;
+        return new Color(color.join(','));
     };
 }
+
+
+/*
+  CanvasImage Class from Color Thief
+  Class that wraps the html image element and canvas.
+  It also simplifies some of the canvas context manipulation
+  with a set of helper functions.
+*/
+var CanvasImage = function (image) {
+    this.canvas = document.createElement('canvas');
+    this.context = this.canvas.getContext('2d');
+
+    document.body.appendChild(this.canvas);
+
+    this.width = this.canvas.width = image.width;
+    this.height = this.canvas.height = image.height;
+
+    this.context.drawImage(image, 0, 0, this.width, this.height);
+};
+
+CanvasImage.prototype.clear = function () {
+    this.context.clearRect(0, 0, this.width, this.height);
+};
+
+CanvasImage.prototype.update = function (imageData) {
+    this.context.putImageData(imageData, 0, 0);
+};
+
+CanvasImage.prototype.getPixelCount = function () {
+    return this.width * this.height;
+};
+
+CanvasImage.prototype.getImageData = function () {
+    return this.context.getImageData(0, 0, this.width, this.height);
+};
+
+CanvasImage.prototype.removeCanvas = function () {
+    this.canvas.parentNode.removeChild(this.canvas);
+};

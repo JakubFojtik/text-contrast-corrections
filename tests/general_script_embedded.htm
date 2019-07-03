@@ -1,0 +1,44 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+<body>
+<div id="content"></div>
+<script>
+fetch('general.htm', {
+  method: 'GET',
+  headers: {
+  }
+}).then(response => {
+  if (response.ok) {
+    response.text().then(async (response) => {
+      document.body.innerHTML = response;
+	  let scriptsUrls = [
+		'http://127.0.0.1:8080/classes/ConfiguratorDummy.js',
+		'http://127.0.0.1:8080/classes/Color.js',
+		'http://127.0.0.1:8080/classes/Hacks.js',
+		'http://127.0.0.1:8080/classes/ImageColorFinder.js',
+		'http://127.0.0.1:8080/classes/TextNodeWalker.js',
+		'http://127.0.0.1:8080/classes/Length.js',
+	  ];
+	  
+	  function appendScript(url) {
+		  let script = document.createElement("script");
+		  let promise = new Promise(res => script.onload = res);
+		  script.src=url;
+		  document.body.appendChild(script);
+		  return promise;
+	  }
+	  
+	  let promises = [];
+	  for (let url of scriptsUrls) {
+		  promises.push(appendScript(url));
+	  }
+	  await Promise.all(promises);
+	  appendScript('http://127.0.0.1:8080/text-contrast-corrections.user.js');
+    });
+  }
+});
+</script>
+</body>
+</html>

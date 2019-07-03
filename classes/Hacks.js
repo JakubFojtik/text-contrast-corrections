@@ -1,6 +1,9 @@
 // Gathers foreground and background color of a DOM element
 
 class Hacks {
+    constructor(restart) {
+        this.restart = restart;
+    }
 
     doAllHacks() {
         this.github();
@@ -12,10 +15,12 @@ class Hacks {
         //from https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
         var targetNode = document.getElementById('js-pjax-loader-bar');
         if (targetNode) {
-            let callback = function (mutationsList) {
+            let restartFun = this.restart;
+            let callback = function(mutationsList) {
                 for (let mutation of mutationsList) {
                     if (mutation.attributeName == 'class' && targetNode.className == 'pjax-loader-bar') {
-                        restart();
+                        console.log('mutated');
+                        restartFun();
                     }
                 }
             };
@@ -32,7 +37,7 @@ class Hacks {
         if (bgEl) {
             let newBg = window.getComputedStyle(bgEl).getPropertyValue('background-color');
             //do not reapply deleted background
-            if (newBg != 'rgba(0, 0, 0, 0)') {  //todo compare using Color class
+            if (newBg != 'rgba(0, 0, 0, 0)') { //todo compare using Color class
                 let opacity = window.getComputedStyle(bgEl).getPropertyValue('opacity');
                 bgEl.style.background = 'none';
                 bgEl.parentNode.style.background = newBg;

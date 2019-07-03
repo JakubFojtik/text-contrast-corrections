@@ -1,9 +1,12 @@
 <html>
 <style type="text/css">
+html {
+	background-color: black;
+}
 div {
   width: 40%;
   height: 30%;
-  margin: 15px;
+  padding: 15px;
 }
 #a {
   background-color: lightblue;
@@ -27,7 +30,7 @@ div {
 #ee, #ff {
   width: 70%;
   height: 70%;
-  background-image: url("http://127.0.0.1:8080/tests/circles.png");
+  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,255,0.3)),url("http://127.0.0.1:8080/tests/circles.png");
 }
 </style>
 <head>
@@ -47,7 +50,7 @@ text2 text2 text2 text2 text2 text2
 text2 text2 text2 text2 text2 text2 
 </div>
 </div>
-<div id='c'>text above should be clearly visible with script enabled</div>
+<div id='c'>all text above should be clearly visible with script enabled</div>
 </div>
 </body>
 </html>

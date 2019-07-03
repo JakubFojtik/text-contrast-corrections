@@ -102,4 +102,14 @@ class Color {
     getRGBParts() {
         return this.parts.slice(0, 3);
     }
+    //todo combine THIS with colors, or make static
+    //rely on this being opaque
+    combine(...colors) {
+        console.log('combine' + colors);
+        colors = colors.filter(x => x != null);
+        if (colors.length == 0) return null;
+        let combo = colors.reduce((acc, col) => col.asOpaque(acc));
+        console.log(combo);
+        return combo;
+    }
 }
