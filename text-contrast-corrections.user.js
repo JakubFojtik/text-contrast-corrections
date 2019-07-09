@@ -4,25 +4,27 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       2.0
+// @version       2.1
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
 // @grant         GM.listValues
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Configurator.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Color.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Hacks.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/ImageColorFinder.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/TextNodeWalker.js
-// @require       https://raw.githubusercontent.com/JakubFojtik/text-contrast-corrections/master/classes/Length.js
+// @require       http://127.0.0.1:8080/classes/Configurator.js
+// @require       http://127.0.0.1:8080/classes/Color.js
+// @require       http://127.0.0.1:8080/classes/Hacks.js
+// @require       http://127.0.0.1:8080/classes/ImageColorFinder.js
+// @require       http://127.0.0.1:8080/classes/TextNodeWalker.js
+// @require       http://127.0.0.1:8080/classes/Length.js
 // ==/UserScript==
 
 //Todo:
-//Rerun for lazy-loaded content universally e.g. comments on gog.com, or github without hack
-//Some readonly tags like <math> cannot have their style modified, experimentaly gathered at a wikipedia page https://en.wikipedia.org/wiki/MathML , detect programaticaly
+//Rerun for lazy-loaded content universally e.g. comments on gog.com
+//Detect readonly tags like <math> programaticaly
+//sometimes does not work https://somee.com/FreeAspNetHosting.aspx
+//Some tags' style cannot be modified, experimentaly gathered at a wikipedia page https://en.wikipedia.org/wiki/MathML
 //proper credits for used programs with licenses
 //Detect if element background is just an underline or a list item bullet e.g. linear-gradient(90deg,currentColor,currentColor)
-//for images, decide if they are big enough for each element, not globaly for image, e.g. list item bullet in case first list is not displayed and has different bgcolor
+//for images, decide if they are big enough for each element, not globaly for image, e.g. list item bullet in case first list is not displayed
 //consider sprite map bg image, will be bigger than displayed portion, colors will be wrong
 //match url like gradient, match exactly with braces in case of multiple bgimgs, compute gradient avg color properly
 
@@ -59,6 +61,7 @@ try {
             //computed bg cols of elements
             let elemCorrections = [];
             let walkMethod = async textElem => {
+                //if(textElem.tagName!='BODY') throw  new Exception();
                 //console.log('textElem' + textElem.innerHTML);
                 //set font weight
                 let fw = window.getComputedStyle(textElem).getPropertyValue('font-weight');
@@ -73,12 +76,16 @@ try {
                     if (globalData.has(elem)) {
                         col = globalData.get(elem);
                         localData.set(elem, [col]);
+                        //console.log('hascol' + localData.get(elem));
                         return true;
                     }
 
                     let color = imageColorFinder.tryGetBgColor(elem);
-                    let image = await imageColorFinder.tryGetBgImgColor(elem);
+                    //console.log('col' + color);
+                    let image = await imageColorFinder.tryGetBgImgColor(elem).catch(() => { console.error('imageColorFinder.tryGetBgImgColor error') });
+                    //console.log('img' + image);
                     let gradient = imageColorFinder.tryGetGradientColor(elem);
+                    //console.log('grad' + gradient);
 
                     //console.log(color + ' ' + image + ' ' + gradient);
                     //let elemCol = color.combine(color, image, gradient);
@@ -86,7 +93,7 @@ try {
                     col = localData.get(elem).find(x => x && x.isOpaque());
                     if (col) col = new Color(col.getRGBParts().map(x => Math.round(x)).join(', '));
                     return col;
-                });
+                }).catch(() => { console.error('walker.walkElemParentsUntil error') });
                 //console.log('col ' + col);
                 if (!col) {
                     col = new Color('255,255,255');
@@ -118,6 +125,7 @@ try {
 
             //depends on previous events being finished.
             async function finalize() {
+                //console.log('finalizing');
                 //Write the computed corrections last so they don't afect their computation
                 elemCorrections.forEach((corr) => {
                     //console.log(corr.el.tagName+','+corr.prop+','+corr.col);
@@ -129,7 +137,8 @@ try {
                 });
 
                 //Set computed body background color, will only be used for scrollbar background, bgimages are not used in firefox.
-                await walkMethod(document.body);
+                await walkMethod(document.body).catch(() => { console.error('walkMethod(document.body) error') });
+                //console.log('walked');
                 let bodyBg = globalData.get(document.body);
                 if (!bodyBg) {
                     console.error('should not happen, body col should be known');
@@ -149,7 +158,8 @@ try {
             };
 
             await walker.forTextElementsUnder(document.body, walkMethod)
-                .then(finalize, finalize);
+                .catch(() => { console.error('walker.forTextElementsUnder(document.body) error') })
+                .then(finalize);
             console.log('all done');
             //console.log(globalData);
 

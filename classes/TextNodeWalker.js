@@ -3,7 +3,7 @@
 const TIMEOUT_MS = 1000;
 
 class TextNodeWalker {
-    constructor() {}
+    constructor() { }
 
     forTextElementsUnder(elemContainer, callback) {
         let promises = [];
@@ -28,10 +28,11 @@ class TextNodeWalker {
                 console.error('timed out');
                 reject();
             }, ms));
-        promise = promise.then(x => {
+        let finish = x => {
             console.log('walker done');
             clearTimeout(timeout);
-        });
+        };
+        promise = promise.then(finish, finish);
         return Promise.race([prom, promise]);
     }
 
