@@ -48,7 +48,7 @@ class ImageColorFinder {
         if (bgSpec) {
             let matches = bgSpec.match(/^[a-z\-]+gradient\(.*/g); //needs cf parsing for nested parens, includes following gradients
             if (matches && matches.length > 0) {
-                console.log('mam' + matches[0]);
+                //console.log('mam' + matches[0]);
                 return this.tryGetGradientColorImpl(element, matches[0]);
             }
         }
