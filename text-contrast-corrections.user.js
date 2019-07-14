@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       2.1
+// @version       2.2
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue

@@ -1,12 +1,9 @@
 //Copied from https://github.com/heygrady/Units
 
-(function(window, document, undefined) {
-    "use strict";
-
     // create a test element
     var testElem = document.createElement('test'),
         docElement = document.documentElement,
-        defaultView = window,
+        defaultView = unsafeWindow,
         getComputedStyle = defaultView && defaultView.getComputedStyle,
         computedValueBug,
         runit = /^(-?[\d+\.\-]+)([a-z]+|%)$/i,
@@ -143,7 +140,8 @@
     }
 
     // expose the conversion function to the window object
-    window.Length = {
-        toPx: toPx
-    };
-}(this, this.document));
+    class Length {
+      toPx(elem, value, prop, force) {
+       return toPx(elem, value, prop, force);
+      }
+    }

@@ -126,7 +126,8 @@ class ImageColorFinder {
 
         //is repeat enough? ifnot is size enough?
         let bgSize = window.getComputedStyle(element).getPropertyValue('background-size');
-        console.log('toz' + window.Length.toPx(element, '1em'));
+        let w = window.getComputedStyle(element).getPropertyValue('width');
+        console.log('toz ' + w + '~' + new Length().toPx(element, w, 'width'));
         let bgRepeat = window.getComputedStyle(element).getPropertyValue('background-repeat');
         let bgRepeatX = bgRepeat,
             bgRepeatY = bgRepeat;

@@ -63,3 +63,4 @@ class TextNodeWalker {
         window.setTimeout(action, 0);
     }
 }
+
