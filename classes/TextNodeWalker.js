@@ -3,7 +3,7 @@
 const TIMEOUT_MS = 1000;
 
 class TextNodeWalker {
-    constructor() { }
+    constructor() {}
 
     forTextElementsUnder(elemContainer, callback) {
         let promises = [];
@@ -63,4 +63,3 @@ class TextNodeWalker {
         window.setTimeout(action, 0);
     }
 }
-

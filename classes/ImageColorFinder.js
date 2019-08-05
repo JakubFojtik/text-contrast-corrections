@@ -33,7 +33,7 @@ class ImageColorFinder {
     //todo searchUrl(forWhat), use in gradient too
     tryGetBgImgUrl(element) {
         let bgSpec = window.getComputedStyle(element).getPropertyValue('background-image');
-        let regex = /url\("[^"]*"\)/g;  //todo handle all matches, e.g. transparent images over eachother
+        let regex = /url\("[^"]*"\)/g; //todo handle all matches, e.g. transparent images over eachother
         let url = bgSpec.match(regex);
         if (url && url.length > 0 && url[0].startsWith('url("')) {
             return url[0].split('"')[1];
@@ -205,7 +205,7 @@ class ImageColorFinder {
   It also simplifies some of the canvas context manipulation
   with a set of helper functions.
 */
-var CanvasImage = function (image) {
+var CanvasImage = function(image) {
     this.canvas = document.createElement('canvas');
     this.context = this.canvas.getContext('2d');
 
@@ -217,22 +217,22 @@ var CanvasImage = function (image) {
     this.context.drawImage(image, 0, 0, this.width, this.height);
 };
 
-CanvasImage.prototype.clear = function () {
+CanvasImage.prototype.clear = function() {
     this.context.clearRect(0, 0, this.width, this.height);
 };
 
-CanvasImage.prototype.update = function (imageData) {
+CanvasImage.prototype.update = function(imageData) {
     this.context.putImageData(imageData, 0, 0);
 };
 
-CanvasImage.prototype.getPixelCount = function () {
+CanvasImage.prototype.getPixelCount = function() {
     return this.width * this.height;
 };
 
-CanvasImage.prototype.getImageData = function () {
+CanvasImage.prototype.getImageData = function() {
     return this.context.getImageData(0, 0, this.width, this.height);
 };
 
-CanvasImage.prototype.removeCanvas = function () {
+CanvasImage.prototype.removeCanvas = function() {
     this.canvas.parentNode.removeChild(this.canvas);
 };

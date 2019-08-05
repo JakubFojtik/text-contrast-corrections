@@ -81,7 +81,9 @@ try {
 
                     let color = imageColorFinder.tryGetBgColor(elem);
                     //console.log('col' + color);
-                    let image = await imageColorFinder.tryGetBgImgColor(elem).catch(() => { console.error('imageColorFinder.tryGetBgImgColor error') });
+                    let image = await imageColorFinder.tryGetBgImgColor(elem).catch(() => {
+                        console.error('imageColorFinder.tryGetBgImgColor error')
+                    });
                     //console.log('img' + image);
                     let gradient = imageColorFinder.tryGetGradientColor(elem);
                     //console.log('grad' + gradient);
@@ -92,7 +94,9 @@ try {
                     col = localData.get(elem).find(x => x && x.isOpaque());
                     if (col) col = new Color(col.getRGBParts().map(x => Math.round(x)).join(', '));
                     return col;
-                }).catch(() => { console.error('walker.walkElemParentsUntil error') });
+                }).catch(() => {
+                    console.error('walker.walkElemParentsUntil error')
+                });
                 //console.log('col ' + col);
                 if (!col) {
                     col = new Color('255,255,255');
@@ -136,7 +140,9 @@ try {
                 });
 
                 //Set computed body background color, will only be used for scrollbar background, bgimages are not used in firefox.
-                await walkMethod(document.body).catch(() => { console.error('walkMethod(document.body) error') });
+                await walkMethod(document.body).catch(() => {
+                    console.error('walkMethod(document.body) error')
+                });
                 //console.log('walked');
                 let bodyBg = globalData.get(document.body);
                 if (!bodyBg) {
@@ -157,7 +163,9 @@ try {
             };
 
             await walker.forTextElementsUnder(document.body, walkMethod)
-                .catch(() => { console.error('walker.forTextElementsUnder(document.body) error') })
+                .catch(() => {
+                    console.error('walker.forTextElementsUnder(document.body) error')
+                })
                 .then(finalize);
             console.log('all done');
             //console.log(globalData);
@@ -171,10 +179,14 @@ try {
             const targetNode = document.body;
 
             // Options for the observer (which mutations to observe)
-            const config = { attributes: true, childList: true, subtree: true };
+            const config = {
+                attributes: true,
+                childList: true,
+                subtree: true
+            };
 
             // Callback function to execute when mutations are observed
-            const callback = function (mutationsList, observer) {
+            const callback = function(mutationsList, observer) {
                 //console.log('mutant');
                 for (let mutation of mutationsList) {
                     if (mutation.type !== 'childList' || mutation.addedNodes.length < 1) continue;
