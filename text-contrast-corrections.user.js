@@ -18,7 +18,6 @@
 // ==/UserScript==
 
 //Todo:
-//Rerun for lazy-loaded content universally e.g. comments on gog.com
 //Detect readonly tags like <math> programaticaly
 //sometimes does not work https://somee.com/FreeAspNetHosting.aspx
 //Some tags' style cannot be modified, experimentaly gathered at a wikipedia page https://en.wikipedia.org/wiki/MathML
@@ -166,6 +165,33 @@ try {
         }
         restart();
 
+        function restartOnDOMMutation(restart) {
+            //https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
+            // Select the node that will be observed for mutations
+            const targetNode = document.body;
+
+            // Options for the observer (which mutations to observe)
+            const config = { attributes: true, childList: true, subtree: true };
+
+            // Callback function to execute when mutations are observed
+            const callback = function (mutationsList, observer) {
+                //console.log('mutant');
+                for (let mutation of mutationsList) {
+                    if (mutation.type !== 'childList' || mutation.addedNodes.length < 1) continue;
+                    //console.log(mutation.addedNodes);
+                    restart();
+                    break;
+                }
+            };
+
+            // Create an observer instance linked to the callback function
+            const observer = new window.MutationObserver(callback);
+
+            // Start observing the target node for configured mutations
+            observer.observe(targetNode, config);
+
+        }
+        restartOnDOMMutation(restart);
 
     })();
 } catch (e) {
