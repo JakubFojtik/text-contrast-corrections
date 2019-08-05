@@ -6,29 +6,7 @@ class Hacks {
     }
 
     doAllHacks() {
-        this.github();
         this.wikia();
-    }
-
-    github() {
-        //Github - lazy loaded content
-        //from https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
-        var targetNode = document.getElementById('js-pjax-loader-bar');
-        if (targetNode) {
-            let restartFun = this.restart;
-            let callback = function(mutationsList) {
-                for (let mutation of mutationsList) {
-                    if (mutation.attributeName == 'class' && targetNode.className == 'pjax-loader-bar') {
-                        console.log('mutated');
-                        restartFun();
-                    }
-                }
-            };
-            let observer = new MutationObserver(callback);
-            observer.observe(targetNode, {
-                attributes: true
-            });
-        }
     }
 
     wikia() {
