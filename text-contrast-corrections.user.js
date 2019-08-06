@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       2.3
+// @version       2.4
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
@@ -60,7 +60,8 @@ try {
             //computed bg cols of elements
             let elemCorrections = [];
             let walkMethod = async textElem => {
-                //if(textElem.tagName!='BODY') throw  new Exception();
+                //if(textElem.tagName!='BODY') return;
+                //if(textElem.innerHTML!='Buy Master of Orion') return;
                 //console.log('textElem' + textElem.innerHTML);
                 //set font weight
                 let fw = window.getComputedStyle(textElem).getPropertyValue('font-weight');
@@ -81,8 +82,8 @@ try {
 
                     let color = imageColorFinder.tryGetBgColor(elem);
                     //console.log('col' + color);
-                    let image = await imageColorFinder.tryGetBgImgColor(elem).catch(() => {
-                        console.error('imageColorFinder.tryGetBgImgColor error')
+                    let image = await imageColorFinder.tryGetBgImgColor(elem).catch((error) => {
+                        console.error('imageColorFinder.tryGetBgImgColor error ' + error)
                     });
                     //console.log('img' + image);
                     let gradient = imageColorFinder.tryGetGradientColor(elem);
@@ -94,8 +95,8 @@ try {
                     col = localData.get(elem).find(x => x && x.isOpaque());
                     if (col) col = new Color(col.getRGBParts().map(x => Math.round(x)).join(', '));
                     return col;
-                }).catch(() => {
-                    console.error('walker.walkElemParentsUntil error')
+                }).catch((error) => {
+                    console.error('walker.walkElemParentsUntil error ' + error)
                 });
                 //console.log('col ' + col);
                 if (!col) {
@@ -124,6 +125,7 @@ try {
                     prop: "color",
                     col: fgCol.toString()
                 });
+                //console.log(elemCorrections);
             };
 
             //depends on previous events being finished.
@@ -140,16 +142,15 @@ try {
                 });
 
                 //Set computed body background color, will only be used for scrollbar background, bgimages are not used in firefox.
-                await walkMethod(document.body).catch(() => {
-                    console.error('walkMethod(document.body) error')
+                await walkMethod(document.body).catch((error) => {
+                    console.error('walkMethod(document.body) error ' + error)
                 });
                 //console.log('walked');
                 let bodyBg = globalData.get(document.body);
                 if (!bodyBg) {
                     console.error('should not happen, body col should be known');
                     bodyBg = new Color(window.getComputedStyle(document.body).getPropertyValue('background-color'));
-                    if (!bodyBg || !bodyBg.isOpaque()) bodyBg = 'rgb(255,255,255)';
-                    bodyBg = new Color(bodyBg);
+                    if (!bodyBg || !bodyBg.isOpaque()) bodyBg = new Color('rgb(255,255,255)');
                 }
                 document.documentElement.style.backgroundColor = bodyBg.toString();
                 document.body.style.backgroundColor = bodyBg.toString();
@@ -159,12 +160,12 @@ try {
                 let htmlStyle = document.getElementsByTagName("HTML")[0].style;
                 htmlStyle.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
                 htmlStyle.scrollbarWidth = await config.getScrollWidth();
-                console.log('finalized');
+                //console.log('finalized');
             };
 
             await walker.forTextElementsUnder(document.body, walkMethod)
-                .catch(() => {
-                    console.error('walker.forTextElementsUnder(document.body) error')
+                .catch((error) => {
+                    console.error('walker.forTextElementsUnder(document.body) error ' + error)
                 })
                 .then(finalize);
             console.log('all done');

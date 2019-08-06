@@ -58,26 +58,28 @@ class ImageColorFinder {
 
     tryGetGradientColorImpl(element, url) {
         //do NOT skip nonrepeated bg for gradients, at least stackoverflow has it nonrepeated
-        let colReg = RegExp('rgba?\\(([0-9]{1,3},? ?){3,4}\\)', 'g');
+        let colReg = RegExp('rgba?\\(([0-9.]+,? ?){3,4}\\)', 'g');
         let colors = url.match(colReg);
-        //console.log(colors.length +' '+colors);
-        if (colors.length > 0) {
+
+        if (colors && colors.length > 0) {
             let colorParts = [0, 0, 0];
-            //Compute average color by just averaging all used opaque colors, todo better computation than that
-            let opaqueColors = colors.map(x => new Color(x)).filter(x => x.isOpaque());
-            if (opaqueColors.length == 0) return null;
-            opaqueColors.map(x => x.getRGBParts())
-                .forEach(parts => {
-                    parts.forEach((val, idx) => {
+            let opacity = 0;
+            //Compute average color by just averaging all mentioned colors, todo better computation than that
+            colors.map(x => new Color(x))
+                .forEach(col => {
+                    col.getRGBParts().forEach((val, idx) => {
                         colorParts[idx] += val;
                     });
+                    opacity += col.opacity();
                 });
             colorParts.forEach((val, idx) => {
                 colorParts[idx] = Math.round(val / colors.length);
             });
-            this.elemBgcols.set(element, new Color(colorParts.join(', ')));
-            //console.log(colorParts+url);
-            return new Color(colorParts.join(', '));
+            opacity /= colors.length;
+            let allParts = colorParts.concat([opacity]);
+            this.elemBgcols.set(element, new Color(allParts.join(', ')));
+            //console.log(allParts+url);
+            return new Color(allParts.join(', '));
         }
         return null;
     }
