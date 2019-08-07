@@ -200,7 +200,7 @@ try {
                     if (!elemTimers.has(elem)) {
                         elemTimers.set(elem, window.setTimeout(() => {
                             elemTimers.delete(elem);
-                            startAsEvent(restart());
+                            startAsEvent(restart);
                         }, 500));
                     };
                     break;
