@@ -181,7 +181,7 @@ try {
 
             // Options for the observer (which mutations to observe)
             const config = {
-                attributes: false,
+                attributes: true,
                 childList: true,
                 subtree: true
             };
@@ -192,7 +192,12 @@ try {
             const callback = function(mutationsList, observer) {
                 //console.log('mutant');
                 for (let mutation of mutationsList) {
-                    if (mutation.type !== 'childList' || mutation.addedNodes.length < 1) continue;
+                    //Attribute can also change text colors
+                    if (mutation.type == 'attributes') {
+                      globalData.delete(mutation.target);
+                      mutation.target.removeProperty('color');
+                      //walk up the DOM tree, delete saved colors up to mutation target
+                    }
                     //console.log(mutation.addedNodes);
 
                     //todo after restart only processes new nodes implement here
@@ -203,7 +208,7 @@ try {
                             startAsEvent(restart);
                         }, 500));
                     };
-                    break;
+                    //break;
                 }
             };
 
