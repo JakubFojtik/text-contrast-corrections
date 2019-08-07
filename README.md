@@ -25,7 +25,6 @@ So you can set ratio of 1 (100%) to make all text black (or white on dark backgr
 
 # Todos
 
-- Rerun for lazy-loaded content universally e.g. github without hack
 - Some readonly tags like <math> cannot have their style modified, experimentaly gathered at a wikipedia page https:- en.wikipedia.org/wiki/MathML , detect programaticaly
 - proper credits for used programs with licenses
 - Detect if element background is just an underline or a list item bullet e.g. linear-gradient(90deg,currentColor,currentColor)
