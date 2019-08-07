@@ -25,11 +25,10 @@ class TextNodeWalker {
         let timeout;
         let prom = new Promise((resolve, reject) =>
             timeout = setTimeout(() => {
-                console.error('timed out');
-                reject();
+                reject('timed out');
             }, ms));
         let finish = x => {
-            console.log('walker done');
+            //console.log('walker done');
             clearTimeout(timeout);
         };
         promise = promise.then(finish, finish);

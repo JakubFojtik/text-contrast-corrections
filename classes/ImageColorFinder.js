@@ -16,7 +16,7 @@ class ImageColorFinder {
 
     tryGetBgColor(element) {
         let bgColor = window.getComputedStyle(element).getPropertyValue('background-color');
-        return new Color(bgColor);
+        return bgColor ? new Color(bgColor) : null;
     }
 
     async tryGetBgImgColor(element) {
@@ -85,13 +85,16 @@ class ImageColorFinder {
     }
 
     getBgImageColor(element, url) {
+        //console.log('loading ' + url);
         this.imgCounter++;
         let sourceImage = document.createElement("img");
         let prom = new Promise((res, rej) => {
             sourceImage.addEventListener('load', () => {
+                //console.log('loaded ' + url);
                 var image = new CanvasImage(sourceImage);
                 try {
                     if (!this.doesImageCoverElem(element, image, url)) {
+                        //console.log('rejected ' + url);
                         res(null);
                         return null;
                     }
@@ -100,6 +103,7 @@ class ImageColorFinder {
                     this.elemBgcols.set(element, color);
                     this.imgCounter--;
                     res(color);
+                    //console.log('resolved ' + url);
                 } finally {
                     image.removeCanvas();
                 }
@@ -124,12 +128,16 @@ class ImageColorFinder {
     doesImageCoverElem(element, image, url) {
         //todo multiple background images and their sizes https://developer.mozilla.org/en-US/docs/Web/CSS/background-size#Syntax
         //todo sprite image - different part used at different places, cannot compute color from whole
-        console.log(image.width + " " + image.height + " " + url);
+        //console.log(image.width + " " + image.height + " " + url);
+
+        //Empty size probably means SVGs without intrinsic size
+        //todo take parent element dimensions instead, but not if SVG is an icon sheet...
+        if (!image.width || !image.height) return false;
 
         //is repeat enough? ifnot is size enough?
         let bgSize = window.getComputedStyle(element).getPropertyValue('background-size');
-        let w = window.getComputedStyle(element).getPropertyValue('width');
-        console.log('toz ' + w + '~' + new Length().toPx(element, w, 'width'));
+        //let w = window.getComputedStyle(element).getPropertyValue('width');
+        //console.log('toz ' + w + '~' + new Length().toPx(element, w, 'width'));
         let bgRepeat = window.getComputedStyle(element).getPropertyValue('background-repeat');
         let bgRepeatX = bgRepeat,
             bgRepeatY = bgRepeat;
@@ -145,9 +153,9 @@ class ImageColorFinder {
         bgRepeatY = bgRepeatY != 'no-repeat';
         let elemWidth = element.clientWidth;
         let elemHeight = element.clientHeight;
-        console.log(url + element.tagName + element.getBoundingClientRect().width);
-        console.log(bgRepeatX, image.width, elemWidth);
-        console.log(bgRepeatY, image.height, elemHeight);
+        //console.log(url + element.tagName + element.getBoundingClientRect().width);
+        //console.log(bgRepeatX, image.width, elemWidth);
+        //console.log(bgRepeatY, image.height, elemHeight);
         if (bgSize == 'cover') return true;
 
         //image size * bg size = covered size
@@ -163,6 +171,9 @@ class ImageColorFinder {
         if (typeof quality === 'undefined' || quality < 1 || quality > MAX_COLOR_THIEVING_QUALITY) {
             quality = 5;
         }
+
+        //Prevent IndexSizeError for SVGs without intrinsic size
+        if (!image.width || !image.height) return null;
 
         // Create custom CanvasImage object
         var imageData = image.getImageData();

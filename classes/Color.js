@@ -9,11 +9,11 @@ const ERROR_MARGIN = 0.01;
 
 class Color {
     constructor(colorSpec) {
-        //if(!colorSpec.match) console.trace(colorSpec);
         let regex = /[0-9.]+/g; //allow for missing leading zero, at least FF displays colors like that
         let parts = colorSpec.match(regex);
+        if (!colorSpec) console.trace(colorSpec);
 
-        if (parts.length >= 3) {
+        if (parts && parts.length >= 3) {
             let parsedParts = [];
             parts.forEach((part, idx) => {
                 parsedParts[idx] = parseFloat(part);

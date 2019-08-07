@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       2.4
+// @version       2.5
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
@@ -56,12 +56,11 @@ try {
         //todo optimize -  reuse old elem->color maps
         async function restart() {
             //console.log('restarting');
-
             //computed bg cols of elements
             let elemCorrections = [];
             let walkMethod = async textElem => {
                 //if(textElem.tagName!='BODY') return;
-                //if(textElem.innerHTML!='Buy Master of Orion') return;
+                //if(textElem.innerHTML!='text') return;
                 //console.log('textElem' + textElem.innerHTML);
                 //set font weight
                 let fw = window.getComputedStyle(textElem).getPropertyValue('font-weight');
@@ -79,7 +78,6 @@ try {
                         //console.log('hascol' + localData.get(elem));
                         return true;
                     }
-
                     let color = imageColorFinder.tryGetBgColor(elem);
                     //console.log('col' + color);
                     let image = await imageColorFinder.tryGetBgImgColor(elem).catch((error) => {
@@ -113,7 +111,9 @@ try {
                 });
 
                 //get fg col and contrast to bg col
-                let fgCol = new Color(window.getComputedStyle(textElem).getPropertyValue('color'));
+                let fgColText = window.getComputedStyle(textElem).getPropertyValue('color');
+                if (!fgColText) fgColText = '0,0,0';
+                let fgCol = new Color(fgColText);
                 //console.log('pre ' + fgCol + ' ' + col + textElem.id + desiredContrast);
                 //fgcol can be transparent too
                 fgCol = fgCol.asOpaque(col);
@@ -181,10 +181,12 @@ try {
 
             // Options for the observer (which mutations to observe)
             const config = {
-                attributes: true,
+                attributes: false,
                 childList: true,
                 subtree: true
             };
+
+            let elemTimers = new Map();
 
             // Callback function to execute when mutations are observed
             const callback = function(mutationsList, observer) {
@@ -192,7 +194,15 @@ try {
                 for (let mutation of mutationsList) {
                     if (mutation.type !== 'childList' || mutation.addedNodes.length < 1) continue;
                     //console.log(mutation.addedNodes);
-                    restart();
+
+                    //todo after restart only processes new nodes implement here
+                    let elem = document.body; //mutation.addedNodes[0];
+                    if (!elemTimers.has(elem)) {
+                        elemTimers.set(elem, window.setTimeout(() => {
+                            elemTimers.delete(elem);
+                            startAsEvent(restart());
+                        }, 500));
+                    };
                     break;
                 }
             };
