@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       2.6
+// @version       2.7
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
@@ -194,9 +194,9 @@ try {
                 for (let mutation of mutationsList) {
                     //Attribute can also change text colors
                     if (mutation.type == 'attributes') {
-                      globalData.delete(mutation.target);
-                      mutation.target.removeProperty('color');
-                      //walk up the DOM tree, delete saved colors up to mutation target
+                        globalData.delete(mutation.target);
+                        mutation.target.removeProperty('color');
+                        //walk up the DOM tree, delete saved colors up to mutation target
                     }
                     //console.log(mutation.addedNodes);
 

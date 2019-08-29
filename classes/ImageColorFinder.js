@@ -89,11 +89,11 @@ class ImageColorFinder {
         this.imgCounter++;
         let sourceImage = document.createElement("img");
         let prom = new Promise((res, rej) => {
-            sourceImage.addEventListener('load', () => {
+            sourceImage.addEventListener('load', async () => {
                 //console.log('loaded ' + url);
                 var image = new CanvasImage(sourceImage);
                 try {
-                    if (!this.doesImageCoverElem(element, image, url)) {
+                    if (!await this.doesImageCoverElem(element, image, url)) {
                         //console.log('rejected ' + url);
                         res(null);
                         return null;
@@ -125,10 +125,13 @@ class ImageColorFinder {
         sourceImage.src = url;
     }
 
-    doesImageCoverElem(element, image, url) {
+    async doesImageCoverElem(element, image, url) {
         //todo multiple background images and their sizes https://developer.mozilla.org/en-US/docs/Web/CSS/background-size#Syntax
         //todo sprite image - different part used at different places, cannot compute color from whole
-        //console.log(image.width + " " + image.height + " " + url);
+        let debug = 0;
+        //if (url == 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAHCAQAAACFbCRbAAAAF0lEQVQIW2Mw/s8AAcb/8TBRKRADIg0Ay04OWT4z8T8AAAAASUVORK5CYII=')
+        //    debug = 1;
+        if (debug) console.log(image.width + " " + image.height + " " + url);
 
         //Empty size probably means SVGs without intrinsic size
         //todo take parent element dimensions instead, but not if SVG is an icon sheet...
@@ -153,16 +156,25 @@ class ImageColorFinder {
         bgRepeatY = bgRepeatY != 'no-repeat';
         let elemWidth = element.clientWidth;
         let elemHeight = element.clientHeight;
+        //if width is zero try to get width of parent. height is more complex, so it's ignored here
+        //happens with elems with no width set
+        if (elemWidth == 0) {
+            let walker = new TextNodeWalker();
+            await walker.walkElemParentsUntil(element, (el) => {
+                elemWidth = el.clientWidth;
+                return elemWidth != 0;
+            });
+        }
         //console.log(url + element.tagName + element.getBoundingClientRect().width);
-        //console.log(bgRepeatX, image.width, elemWidth);
-        //console.log(bgRepeatY, image.height, elemHeight);
+        if (debug) console.log(bgRepeatX, image.width, elemWidth);
+        if (debug) console.log(bgRepeatY, image.height, elemHeight);
         if (bgSize == 'cover') return true;
 
         //image size * bg size = covered size
         //todo include bg size
         if (!bgRepeatX && (image.width < elemWidth / 2)) return false;
         if (!bgRepeatY && (image.height < elemHeight / 2)) return false;
-
+        if (debug) console.log('does cover');
         return true;
     }
 
