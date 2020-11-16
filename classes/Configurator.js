@@ -1,18 +1,38 @@
 // Configuration for user-changeable parameters
 
-//How contrasting must each text be to its background, from 0 to 1, where 0 is no change and 1 turns everything black & white
-const DEFAULT_DESIRED_CONTRAST = 0.8;
-const DESIRED_CONTRAST_KEY = 'desiredContrast';
-
-//Should scrollbar be thinner?
-const DEFAULT_SCROLL_WIDTH = 'thin';
-const SCROLL_WIDTH_KEY = 'scrollWidth';
+ConfigurableSettings = {
+    DESIRED_CONTRAST: 0,
+    SCROLL_WIDTH: 1,
+    RESET_OPACITY: 2,
+}
 
 class Configurator {
     constructor() {
-        this.descriptions = new Map();
-        this.descriptions.set(DESIRED_CONTRAST_KEY, 'Desired contrast (0.0 to 1.0)');
-        this.descriptions.set(SCROLL_WIDTH_KEY, 'Scrollbar width (normal or thin)');
+        this.settingsMap = new Map();
+
+        this.setup(
+            ConfigurableSettings.DESIRED_CONTRAST,
+            'Desired contrast (0.0 to 1.0)',
+            0.8,
+            x => 0 <= x && x <= 1
+        );
+        this.setup(
+            ConfigurableSettings.SCROLL_WIDTH,
+            'Scrollbar width (normal or thin)',
+            'thin',
+            x => x == 'normal' || x == 'thin'
+        );
+        this.setup(
+            ConfigurableSettings.RESET_OPACITY,
+            'Make all elements opaque? (yes or no)',
+            'yes',
+            x => x == 'yes' || x == 'no'
+        );
+
+    }
+
+    setup(setting, description, defaultVal, isValid) {
+        this.settingsMap.set(setting, { description: description, defaultVal: defaultVal, isValid: isValid });
     }
 
     async displayForm() {
@@ -38,45 +58,47 @@ class Configurator {
         addNewElem('h2', 'Text contrast corrections');
         addNewElem('u', 'Userscript configuration');
         let list = addNewElem('dl');
-        (await GM.listValues()).forEach(async (name) => {
-            let labelText = this.descriptions.has(name) ? this.descriptions.get(name) : name;
-            let label = addNewElem('dt', labelText, list);
+        this.settingsMap.forEach(async (data, setting) => {
+            let label = addNewElem('dt', data.description, list);
             label.style.float = 'left';
             label.style.width = '50%';
             let item = addNewElem('dd', '', list);
             let input = addNewElem('input', '', item);
-            input.name = name;
-            input.value = await GM.getValue(name);
+            input.name = this.getSettingName(setting);
+            //replace GM.getValue with the value-correcting methods
+            input.value = await this.getSetting(setting);
             inputs.set(input, input.value);
         });
         let button = addNewElem('input');
         button.type = 'submit';
         button.value = 'Save';
         button.addEventListener('click', async () => {
-            inputs.forEach(async (oldValue, input) => {
-                await GM.setValue(input.name, input.value);
+            inputs.forEach(async (originalValue, input) => {
+                let setting = ConfigurableSettings[input.name];
+                if (this.settingsMap.get(setting).isValid(input.value))
+                    await GM.setValue(input.name, input.value);
+                else
+                    input.value = await this.getSetting(setting);
             });
         });
     }
 
-    async getContrast() {
-        let contrastText = await GM.getValue(DESIRED_CONTRAST_KEY);
-        let contrast = Number(contrastText);
-        //do not simplify range check, would not filter out uncomparable values
-        if (contrastText === '' || contrast == NaN || !(0 <= contrast && contrast <= 1)) {
+    async getSetting(setting) {
+        let settingData = this.settingsMap.get(setting);
+        let settingName = this.getSettingName(setting);
+
+        let value = await GM.getValue(settingName);
+        if (!settingData.isValid(value)) {
             //replace invalid configured value with default
-            contrast = DEFAULT_DESIRED_CONTRAST;
-            await GM.setValue(DESIRED_CONTRAST_KEY, contrast);
+            value = settingData.defaultVal;
+            await GM.setValue(settingName, value);
         }
-        return contrast;
+        return value;
     }
 
-    async getScrollWidth() {
-        let width = await GM.getValue(SCROLL_WIDTH_KEY);
-        if (!width || !(width == 'normal' || width == 'thin')) {
-            width = DEFAULT_SCROLL_WIDTH;
-            await GM.setValue(SCROLL_WIDTH_KEY, width);
-        }
-        return width;
+    getSettingName(setting) {
+        for (let property in ConfigurableSettings)
+            if (ConfigurableSettings[property] == setting)
+                return property;
     }
 }

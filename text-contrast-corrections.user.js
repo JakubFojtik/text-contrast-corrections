@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       2.7
+// @version       2.8
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
@@ -19,7 +19,6 @@
 
 //Todo:
 //Detect readonly tags like <math> programaticaly
-//sometimes does not work https://somee.com/FreeAspNetHosting.aspx
 //Some tags' style cannot be modified, experimentaly gathered at a wikipedia page https://en.wikipedia.org/wiki/MathML
 //proper credits for used programs with licenses
 //Detect if element background is just an underline or a list item bullet e.g. linear-gradient(90deg,currentColor,currentColor)
@@ -49,7 +48,8 @@ try {
         let globalData = new Map(); //computed elem=>bgColors
         //holds currently downloading urls
         let imageColorFinder = new ImageColorFinder(null, null);
-        let desiredContrast = await config.getContrast();
+        let desiredContrast = await config.getSetting(ConfigurableSettings.DESIRED_CONTRAST);
+        let resetOpacity = await config.getSetting(ConfigurableSettings.RESET_OPACITY);
         let walker = new TextNodeWalker();
 
         // The whole thing wrapped so it can be restarted on lazy-loaded content.
@@ -78,6 +78,14 @@ try {
                         //console.log('hascol' + localData.get(elem));
                         return true;
                     }
+
+                    //Round partial opacity definitions to either 1 or 0
+                    if (resetOpacity == 'yes') {
+                        let opacity = window.getComputedStyle(textElem).getPropertyValue('opacity');
+                        //Allow opacity:0, round others to 1
+                        if (opacity != 0) textElem.style.setProperty('opacity', 1);
+                    }
+
                     let color = imageColorFinder.tryGetBgColor(elem);
                     //console.log('col' + color);
                     let image = await imageColorFinder.tryGetBgImgColor(elem).catch((error) => {
@@ -159,7 +167,7 @@ try {
                 scrCol.contrastTo(bodyBg, desiredContrast);
                 let htmlStyle = document.getElementsByTagName("HTML")[0].style;
                 htmlStyle.scrollbarColor = scrCol + ' rgba(0,0,0,0)';
-                htmlStyle.scrollbarWidth = await config.getScrollWidth();
+                htmlStyle.scrollbarWidth = await config.getSetting(ConfigurableSettings.SCROLL_WIDTH);
                 //console.log('finalized');
             };
 
@@ -189,13 +197,18 @@ try {
             let elemTimers = new Map();
 
             // Callback function to execute when mutations are observed
-            const callback = function(mutationsList, observer) {
+            const callback = function (mutationsList, observer) {
                 //console.log('mutant');
                 for (let mutation of mutationsList) {
+
+                    //todo
+                    if (mutation.type == 'childList') { }
+
                     //Attribute can also change text colors
                     if (mutation.type == 'attributes') {
                         globalData.delete(mutation.target);
                         mutation.target.removeProperty('color');
+                        //what if elem had color? save original color and restore it here?
                         //walk up the DOM tree, delete saved colors up to mutation target
                     }
                     //console.log(mutation.addedNodes);

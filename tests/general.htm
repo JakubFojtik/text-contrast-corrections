@@ -1,56 +1,83 @@
 <html>
 <style type="text/css">
-html {
-	background-color: black;
-}
-div {
-  width: 40%;
-  height: 30%;
-  padding: 15px;
-}
-#a {
-  background-color: lightblue;
-  width: 70%;
-}
-#b {
-  background-color: rgba(0,0,0,0.8);
-  color: navy;
-}
-#c {
-  clear: both;
-}
-#e {
-  float: left;
-  background-color: white;
-}
-#f {
-  float: left;
-  background-color: black;
-}
-#ee, #ff {
-  width: 70%;
-  height: 70%;
-  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,255,0.3)),url("http://127.0.0.1:8080/tests/circles.png");
-}
+  html {
+    background-color: black;
+  }
+
+  div {
+    width: 40%;
+    height: 20%;
+    padding: 15px;
+  }
+
+  #a {
+    background-color: lightblue;
+    width: 70%;
+    height: 60%;
+    min-width: 700px;
+    min-height: 325px;
+  }
+
+  #b {
+    background-color: rgba(0, 0, 0, 0.8);
+    color: navy;
+  }
+
+  #c {
+    clear: both;
+  }
+
+  #e {
+    float: left;
+    background-color: white;
+  }
+
+  #f {
+    float: left;
+    background-color: black;
+  }
+
+  #ee,
+  #ff {
+    width: 70%;
+    height: 70%;
+    background-image: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 255, 0.3)), url("http://127.0.0.1:8080/tests/circles.png");
+  }
+
+  #g {
+    background-color: white;
+    color: navy;
+    clear: both;
+    opacity: 0.2;
+  }
 </style>
+
 <head>
 </head>
+
 <body>
-<div id='a'>
-<div id='b'>
-text1 text1 text1
-</div>
-<div id='e'>
-<div id='ee'>
-text2 text2 text2 text2 text2 text2
-</div>
-</div>
-<div id='f'>
-<div id='ff'>
-text2 text2 text2 text2 text2 text2 
-</div>
-</div>
-<div id='c'>all text above should be clearly visible with script enabled</div>
-</div>
+  <div id='a'>
+    <div id='b'>
+      text1 text1 text1
+    </div>
+    <div id='e'>
+      <div id='ee'>
+        text2 text2 text2 text2 text2 text2
+      </div>
+    </div>
+    <div id='f'>
+      <div id='ff'>
+        text2 text2 text2 text2 text2 text2
+      </div>
+    </div>
+    <div id='g'>
+      text3 text3 text3
+      <div id='h'>
+        text4 text4 text4
+      </div>
+    </div>
+    <div id='c'>all text above should be clearly visible with script enabled</div>
+  </div>
 </body>
+
 </html>
