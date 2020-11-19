@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       2.8
+// @version       2.9
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
@@ -25,8 +25,11 @@
 //for images, decide if they are big enough for each element, not globaly for image, e.g. list item bullet in case first list is not displayed
 //consider sprite map bg image, will be bigger than displayed portion, colors will be wrong
 //match url like gradient, match exactly with braces in case of multiple bgimgs, compute gradient avg color properly
+//start walking from top to all elements (to correct opacity)? Not just from textnodes up to opaque bgcolor
 
 const readOnlyTags = ['mi', 'mo', 'mn', 'mtext', 'mo', 'annotation', 'math'];
+
+var running = false;
 
 try {
     (async () => {
@@ -45,7 +48,7 @@ try {
             window.setTimeout(action, 0);
         }
 
-        let globalData = new Map(); //computed elem=>bgColors
+        let elemOpaqueBgcolMap = new Map(); //computed map of elem => opaque bgColor
         //holds currently downloading urls
         let imageColorFinder = new ImageColorFinder(null, null);
         let desiredContrast = await config.getSetting(ConfigurableSettings.DESIRED_CONTRAST);
@@ -55,6 +58,8 @@ try {
         // The whole thing wrapped so it can be restarted on lazy-loaded content.
         //todo optimize -  reuse old elem->color maps
         async function restart() {
+            running = true;
+            let elemCount = 0;
             //console.log('restarting');
             //computed bg cols of elements
             let elemCorrections = [];
@@ -62,28 +67,30 @@ try {
                 //if(textElem.tagName!='BODY') return;
                 //if(textElem.innerHTML!='text') return;
                 //console.log('textElem' + textElem.innerHTML);
-                //set font weight
+                //Set font weight
                 let fw = window.getComputedStyle(textElem).getPropertyValue('font-weight');
                 if (fw < 400) textElem.style.setProperty("font-weight", 400, "important");
 
                 //possibly transparent bgcols of elements to be computed with final opaque bgcol
-                let localData = new Map(); //elem=>transBgColors
+                let elemAplhaBgcolMap = new Map(); //elem=>transBgColors
                 let col = null;
                 await walker.walkElemParentsUntil(textElem, async elem => {
                     //console.log('elem' + elem.tagName);
                     //get colors in localData
-                    if (globalData.has(elem)) {
-                        col = globalData.get(elem);
-                        localData.set(elem, [col]);
+                    //If elem already has computed bgcol use it as final opaque bgcol
+                    if (elemOpaqueBgcolMap.has(elem)) {
+                        col = elemOpaqueBgcolMap.get(elem);
+                        elemAplhaBgcolMap.set(elem, [col]);
                         //console.log('hascol' + localData.get(elem));
                         return true;
                     }
+                    elemCount++;
 
                     //Round partial opacity definitions to either 1 or 0
                     if (resetOpacity == 'yes') {
                         let opacity = window.getComputedStyle(textElem).getPropertyValue('opacity');
                         //Allow opacity:0, round others to 1
-                        if (opacity != 0) textElem.style.setProperty('opacity', 1);
+                        if (opacity) textElem.style.setProperty('opacity', 1);
                     }
 
                     let color = imageColorFinder.tryGetBgColor(elem);
@@ -97,8 +104,8 @@ try {
 
                     //console.log(color + ' ' + image + ' ' + gradient);
                     //let elemCol = color.combine(color, image, gradient);
-                    localData.set(elem, [color, image, gradient].filter(x => x));
-                    col = localData.get(elem).find(x => x && x.isOpaque());
+                    elemAplhaBgcolMap.set(elem, [color, image, gradient].filter(x => x));
+                    col = elemAplhaBgcolMap.get(elem).find(x => x && x.isOpaque());
                     if (col) col = new Color(col.getRGBParts().map(x => Math.round(x)).join(', '));
                     return col;
                 }).catch((error) => {
@@ -109,13 +116,13 @@ try {
                     col = new Color('255,255,255');
                 }
                 //recwalk array assign colors to globalData
-                //either do opaque.asOpaque or duplicate globalData.set for the opaque elem
-                [...localData].reverse().forEach((colEl) => {
+                [...elemAplhaBgcolMap].reverse().forEach((colEl) => {
                     //console.log('rec ' + colEl[0].id + colEl[1] + col);
                     let allCols = [col, ...colEl[1]];
                     col = allCols.reduce((acc, c) => c.asOpaque(acc));
                     //console.log('glo ' + colEl[0].tagName + colEl[0].id + col);
-                    globalData.set(colEl[0], col);
+                    //Save computed opaque bgcol for the elem
+                    elemOpaqueBgcolMap.set(colEl[0], col);
                 });
 
                 //get fg col and contrast to bg col
@@ -154,7 +161,7 @@ try {
                     console.error('walkMethod(document.body) error ' + error)
                 });
                 //console.log('walked');
-                let bodyBg = globalData.get(document.body);
+                let bodyBg = elemOpaqueBgcolMap.get(document.body);
                 if (!bodyBg) {
                     console.error('should not happen, body col should be known');
                     bodyBg = new Color(window.getComputedStyle(document.body).getPropertyValue('background-color'));
@@ -176,7 +183,8 @@ try {
                     console.error('walker.forTextElementsUnder(document.body) error ' + error)
                 })
                 .then(finalize);
-            console.log('all done');
+            console.log('all done: ' + elemCount);
+            running = false;
             //console.log(globalData);
 
         }
@@ -187,13 +195,6 @@ try {
             // Select the node that will be observed for mutations
             const targetNode = document.body;
 
-            // Options for the observer (which mutations to observe)
-            const config = {
-                attributes: true,
-                childList: true,
-                subtree: true
-            };
-
             let elemTimers = new Map();
 
             // Callback function to execute when mutations are observed
@@ -201,13 +202,20 @@ try {
                 //console.log('mutant');
                 for (let mutation of mutationsList) {
 
-                    //todo
+                    //todo run on new child, ignore deleted
+                    //foreach child: if not in globaldata: run(child)
                     if (mutation.type == 'childList') { }
 
                     //Attribute can also change text colors
+                    //todo: detect if something relevant changed, only then run recursively
                     if (mutation.type == 'attributes') {
-                        globalData.delete(mutation.target);
-                        mutation.target.removeProperty('color');
+
+                        //Skip attribute changes - todo: implement something non-cyclic
+                        continue;
+
+                        elemOpaqueBgcolMap.delete(mutation.target);
+                        //mutating causes another mutation event - cycle:
+                        mutation.target.style.removeProperty('color');
                         //what if elem had color? save original color and restore it here?
                         //walk up the DOM tree, delete saved colors up to mutation target
                     }
@@ -215,7 +223,7 @@ try {
 
                     //todo after restart only processes new nodes implement here
                     let elem = document.body; //mutation.addedNodes[0];
-                    if (!elemTimers.has(elem)) {
+                    if (!running && !elemTimers.has(elem)) {
                         elemTimers.set(elem, window.setTimeout(() => {
                             elemTimers.delete(elem);
                             startAsEvent(restart);
@@ -228,6 +236,13 @@ try {
             // Create an observer instance linked to the callback function
             const observer = new window.MutationObserver(callback);
 
+            // Options for the observer (which mutations to observe)
+            const config = {
+                attributes: true,
+                childList: true,
+                subtree: true
+            };
+
             // Start observing the target node for configured mutations
             observer.observe(targetNode, config);
 
@@ -237,4 +252,5 @@ try {
     })();
 } catch (e) {
     console.error(e);
+    running = false;
 }
