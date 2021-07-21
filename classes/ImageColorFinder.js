@@ -156,13 +156,21 @@ class ImageColorFinder {
         bgRepeatY = bgRepeatY != 'no-repeat';
         let elemWidth = element.clientWidth;
         let elemHeight = element.clientHeight;
-        //if width is zero try to get width of parent. height is more complex, so it's ignored here
+        //if width is zero try to get width of parent.
         //happens with elems with no width set
         if (elemWidth == 0) {
             let walker = new TextNodeWalker();
             await walker.walkElemParentsUntil(element, (el) => {
                 elemWidth = el.clientWidth;
                 return elemWidth != 0;
+            });
+        }
+        //if height is zero try to get height of parent.
+        if (elemHeight == 0) {
+            let walker = new TextNodeWalker();
+            await walker.walkElemParentsUntil(element, (el) => {
+                elemHeight = el.clientHeight;
+                return elemHeight != 0;
             });
         }
         //console.log(url + element.tagName + element.getBoundingClientRect().width);
