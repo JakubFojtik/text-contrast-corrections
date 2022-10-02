@@ -4,7 +4,7 @@
 // @description   Sets minimum font width to normal and increases contrast between text and background if necessary. Also colors scrollbar for better contrast. Configure at http://example.com/
 // @author        Jakub Fojtík
 // @include       *
-// @version       2.17
+// @version       2.18
 // @run-at        document-idle
 // @grant         GM.getValue
 // @grant         GM.setValue
@@ -135,10 +135,13 @@ try {
                     let fgCol = new Color(fgColText);
                     //console.log('pre ' + fgCol + ' ' + col + textElem.id + desiredContrast);
                     //fgcol can be transparent too
-                    fgCol = fgCol.asOpaque(col);
-                    //console.log('pri ' + fgCol);
-                    fgCol.contrastTo(col, desiredContrast);
-                    //console.log('post ' + fgCol + ' ' + col + textElem.id);
+                    //if totally transparent leave it as is
+                    if(!fgCol.isTransparent()) {
+                      fgCol = fgCol.asOpaque(col);
+                      //console.log('pri ' + fgCol);
+                      fgCol.contrastTo(col, desiredContrast);
+                      //console.log('post ' + fgCol + ' ' + col + textElem.id);
+                    }
                     elemCorrections.push({
                         el: textElem,
                         prop: "color",
